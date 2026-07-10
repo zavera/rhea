@@ -12,9 +12,15 @@ import jakarta.persistence.Table;
 
 import java.time.Instant;
 
+/**
+ * The pharmacy's petition to an approved {@link InsuranceApplication}'s program for
+ * reimbursement of a prescription the patient was billed for at dispense time. Filed only
+ * after the application reaches {@link ApplicationStatus#APPROVED}; when this appeal is
+ * marked {@link AppealStatus#PAID}, the linked prescription's bill is cleared.
+ */
 @Entity
-@Table(name = "reimbursement_claims")
-public class ReimbursementClaim {
+@Table(name = "pharmacy_appeals")
+public class PharmacyAppeal {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,17 +30,14 @@ public class ReimbursementClaim {
     private Prescription prescription;
 
     @ManyToOne(optional = false)
-    private UnemploymentVerification verification;
+    private InsuranceApplication insuranceApplication;
 
-    @Column(name = "state_program", nullable = false)
-    private String stateProgram;
-
-    @Column(name = "claim_amount_cents", nullable = false)
-    private Long claimAmountCents;
+    @Column(name = "amount_cents", nullable = false)
+    private Long amountCents;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ClaimStatus status = ClaimStatus.SUBMITTED;
+    private AppealStatus status = AppealStatus.SUBMITTED;
 
     @Column(name = "external_reference")
     private String externalReference;
@@ -61,35 +64,27 @@ public class ReimbursementClaim {
         this.prescription = prescription;
     }
 
-    public UnemploymentVerification getVerification() {
-        return verification;
+    public InsuranceApplication getInsuranceApplication() {
+        return insuranceApplication;
     }
 
-    public void setVerification(UnemploymentVerification verification) {
-        this.verification = verification;
+    public void setInsuranceApplication(InsuranceApplication insuranceApplication) {
+        this.insuranceApplication = insuranceApplication;
     }
 
-    public String getStateProgram() {
-        return stateProgram;
+    public Long getAmountCents() {
+        return amountCents;
     }
 
-    public void setStateProgram(String stateProgram) {
-        this.stateProgram = stateProgram;
+    public void setAmountCents(Long amountCents) {
+        this.amountCents = amountCents;
     }
 
-    public Long getClaimAmountCents() {
-        return claimAmountCents;
-    }
-
-    public void setClaimAmountCents(Long claimAmountCents) {
-        this.claimAmountCents = claimAmountCents;
-    }
-
-    public ClaimStatus getStatus() {
+    public AppealStatus getStatus() {
         return status;
     }
 
-    public void setStatus(ClaimStatus status) {
+    public void setStatus(AppealStatus status) {
         this.status = status;
     }
 

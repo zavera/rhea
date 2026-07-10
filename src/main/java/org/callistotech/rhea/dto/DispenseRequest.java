@@ -9,6 +9,5 @@ public record DispenseRequest(
         Integer quantity,
         Integer daysSupply,
         String prescriberNpi,
-        Long retailPriceCents,
-        String stateProgram) {
+        Long retailPriceCents) {
 }

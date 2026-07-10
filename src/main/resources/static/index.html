@@ -4,21 +4,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/png" href="/callisto_high.png">
-<title>Rhea -- $0 Prescriptions for Unemployed Coloradans</title>
-<meta name="description" content="Rhea verifies unemployment status with the State of Colorado, dispenses medicine for $0 at the pharmacy counter, files the state reimbursement claim, and uses an AI agent to find the patient a qualifying ongoing insurance program.">
+<title>Rhea -- Coverage Pairing for Unemployed Coloradans</title>
+<meta name="description" content="Rhea verifies unemployment status with the State of Colorado, pairs the patient with a qualifying public program with their consent, and lets the pharmacy appeal the original bill once that application is approved.">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://rhea.callistotech.org/">
 <meta name="author" content="Rhea">
 
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://rhea.callistotech.org/">
-<meta property="og:title" content="Rhea -- $0 Prescriptions for Unemployed Coloradans">
-<meta property="og:description" content="Verified unemployment status. $0 at the counter. AI-matched ongoing coverage.">
+<meta property="og:title" content="Rhea -- Coverage Pairing for Unemployed Coloradans">
+<meta property="og:description" content="Verified unemployment status. AI-paired coverage, with patient consent. Pharmacy appeals the bill once approved.">
 <meta property="og:site_name" content="Rhea">
 
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Rhea -- $0 Prescriptions for Unemployed Coloradans">
-<meta name="twitter:description" content="Verified unemployment status. $0 at the counter. AI-matched ongoing coverage.">
+<meta name="twitter:title" content="Rhea -- Coverage Pairing for Unemployed Coloradans">
+<meta name="twitter:description" content="Verified unemployment status. AI-paired coverage, with patient consent. Pharmacy appeals the bill once approved.">
 
 <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400&display=swap" rel="stylesheet">
 
@@ -201,6 +201,9 @@ input:focus-visible, select:focus-visible { outline: 3px solid var(--primary); o
 input[readonly] { background: var(--bg); color: var(--muted); cursor: not-allowed; }
 label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; display: block; margin-bottom: 6px; }
 .field { margin-bottom: 14px; }
+.checkbox-field { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 14px; }
+.checkbox-field input { width: auto; margin-top: 3px; }
+.checkbox-field label { text-transform: none; font-weight: 400; letter-spacing: normal; color: var(--text); font-size: 13px; }
 
 .btn-dark {
   background: linear-gradient(135deg, var(--navy) 0%, var(--navy-lt) 100%);
@@ -215,6 +218,20 @@ label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: 
   width: 100%;
 }
 .btn-dark:hover { filter: brightness(1.15); }
+.btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn-ghost {
+  background: #fff;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  cursor: pointer;
+  transition: border-color .15s;
+  width: 100%;
+}
+.btn-ghost:hover { border-color: var(--primary-dk); }
 
 .highlight-box-gold {
   background: #fdf8f2;
@@ -224,6 +241,15 @@ label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: 
   font-size: 13px;
   margin-bottom: 16px;
 }
+.bill-banner {
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+.bill-banner.owes { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
+.bill-banner.paid { background: #f0fdf4; border: 1px solid var(--accent); color: var(--accent); }
 
 .result-box {
   background: var(--navy);
@@ -295,6 +321,7 @@ footer {
 @media (max-width: 640px) {
   nav { padding: 10px 16px; }
   .page { padding: 24px 16px 52px; }
+  .btn-row { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -306,11 +333,12 @@ footer {
     <img src="/callisto_high.png" alt="Callisto" class="nav-logo">
     <span class="nav-brand-name">RHEA</span>
   </a>
-  <span class="nav-tagline">$0 Rx access for unemployed Coloradans</span>
+  <span class="nav-tagline">Coverage pairing for unemployed Coloradans</span>
   <div class="nav-links">
     <a class="nav-link" href="#verify-block">Verify</a>
     <a class="nav-link" href="#dispense-block">Dispense</a>
-    <a class="nav-link" href="#match-block">Insurance match</a>
+    <a class="nav-link" href="#pairing-block">Pairing</a>
+    <a class="nav-link" href="#appeal-block">Appeal</a>
   </div>
   <span class="nav-status" id="nav-status"></span>
   <a class="nav-cta" href="/login" id="nav-login">Pharmacy staff login</a>
@@ -345,24 +373,73 @@ footer {
 
   <div class="card" id="dispense-block">
     <span class="badge">Step 2</span>
-    <h2>Dispense at $0</h2>
+    <h2>Dispense</h2>
+    <p style="color:var(--muted); margin-top:0">The patient is billed at retail price by default -- there
+      is no automatic $0. The bill only clears once a pharmacy appeal against an approved coverage
+      pairing is paid (steps 3-4 below).</p>
     <div class="field"><label for="drugName">Drug</label><input id="drugName" value="Metformin 500mg"></div>
     <div class="field"><label for="ndcCode">NDC code</label><input id="ndcCode" value="00093-1048-01"></div>
     <div class="field"><label for="quantity">Quantity</label><input id="quantity" type="number" value="60"></div>
     <div class="field"><label for="daysSupply">Days supply</label><input id="daysSupply" type="number" value="30"></div>
     <div class="field"><label for="prescriberNpi">Prescriber NPI</label><input id="prescriberNpi" value="1234567890"></div>
     <div class="field"><label for="retailPrice">Retail price (USD)</label><input id="retailPrice" type="number" step="0.01" value="42.50"></div>
-    <button class="btn-dark" onclick="dispense()">Dispense for $0</button>
+    <button class="btn-dark" onclick="dispense()">Dispense</button>
     <div class="result-box" id="dispense-result"></div>
+    <div id="bill-status-banner"></div>
   </div>
 
-  <div class="card" id="match-block">
+  <div class="card" id="pairing-block">
     <span class="badge">Step 3</span>
-    <h2>AI insurance match</h2>
-    <p style="color:var(--muted); margin-top:0">Finds the patient a qualifying ongoing insurance program using
-      live Colorado public resource search.</p>
-    <button class="btn-dark" onclick="findMatch()">Find insurance program</button>
-    <div class="result-box" id="match-result"></div>
+    <h2>AI coverage pairing</h2>
+    <p style="color:var(--muted); margin-top:0">Drafts a qualifying public-program application using
+      live Colorado public resource search. This only drafts a recommendation -- nothing is
+      submitted until the patient consents below.</p>
+    <button class="btn-dark" onclick="draftPairing()">Draft coverage pairing</button>
+    <div class="result-box" id="pairing-result"></div>
+
+    <div id="consent-section" style="display:none">
+      <h3 class="sub-heading">Patient consent</h3>
+      <div class="field"><label for="programSelect">Program to apply for</label>
+        <select id="programSelect"></select>
+      </div>
+      <div class="checkbox-field">
+        <input type="checkbox" id="consentCheckbox">
+        <label for="consentCheckbox">Patient agrees to have this application filed with the State of
+          Colorado using their verified unemployment status.</label>
+      </div>
+      <div class="btn-row">
+        <button class="btn-dark" onclick="submitConsent(true)">Patient agrees</button>
+        <button class="btn-ghost" onclick="submitConsent(false)">Patient declines</button>
+      </div>
+      <div class="result-box" id="consent-result"></div>
+    </div>
+
+    <div id="decision-section" style="display:none">
+      <h3 class="sub-heading">State decision (recorded manually -- no live status API)</h3>
+      <div class="btn-row">
+        <button class="btn-dark" onclick="recordDecision('APPROVED')">Mark approved</button>
+        <button class="btn-ghost" onclick="recordDecision('DENIED')">Mark denied</button>
+      </div>
+      <div class="result-box" id="decision-result"></div>
+    </div>
+  </div>
+
+  <div class="card" id="appeal-block">
+    <span class="badge">Step 4</span>
+    <h2>Pharmacy appeal</h2>
+    <p style="color:var(--muted); margin-top:0">Once the coverage pairing is approved, the pharmacy
+      appeals the original bill from step 2 to that program for reimbursement.</p>
+    <button class="btn-dark" onclick="submitAppeal()">File appeal for original bill</button>
+    <div class="result-box" id="appeal-result"></div>
+
+    <div id="appeal-decision-section" style="display:none">
+      <h3 class="sub-heading">Appeal outcome (recorded manually -- no live status API)</h3>
+      <div class="btn-row">
+        <button class="btn-dark" onclick="advanceAppeal('PAID')">Mark paid</button>
+        <button class="btn-ghost" onclick="advanceAppeal('DENIED')">Mark denied</button>
+      </div>
+      <div class="result-box" id="appeal-decision-result"></div>
+    </div>
   </div>
 </main>
 
@@ -385,7 +462,14 @@ footer {
 </div>
 
 <script>
-let state = { patientId: null, verificationId: null, pharmacyId: null };
+let state = {
+  patientId: null,
+  verificationId: null,
+  pharmacyId: null,
+  prescriptionId: null,
+  applicationId: null,
+  appealId: null
+};
 
 function render(elId, data, isError) {
   const el = document.getElementById(elId);
@@ -441,6 +525,16 @@ async function ensurePharmacy() {
   });
   state.pharmacyId = created.id;
   return state.pharmacyId;
+}
+
+async function loadProgramOptions() {
+  const select = document.getElementById('programSelect');
+  try {
+    const programs = await api('/api/insurance-programs');
+    select.innerHTML = programs.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+  } catch (e) {
+    select.innerHTML = '<option value="Health First Colorado (Medicaid)">Health First Colorado (Medicaid)</option>';
+  }
 }
 
 async function createPatientRecord() {
@@ -508,12 +602,22 @@ async function manualOverride() {
   }
 }
 
+function renderBillBanner(prescription) {
+  const banner = document.getElementById('bill-status-banner');
+  if (prescription.billStatus === 'PAID_BY_INSURANCE') {
+    banner.innerHTML = '<div class="bill-banner paid">Bill cleared -- paid by insurance.</div>';
+  } else {
+    const owed = (prescription.retailPriceCents / 100).toFixed(2);
+    banner.innerHTML = '<div class="bill-banner owes">Patient owes $' + owed + ' unless the pharmacy appeal (step 4) is paid.</div>';
+  }
+}
+
 async function dispense() {
   try {
     await ensurePatient();
     if (!state.verificationId) throw new Error('Verify unemployment first (CDLE or manager override)');
     const pharmacyId = await ensurePharmacy();
-    const result = await api('/api/prescriptions/dispense', {
+    const prescription = await api('/api/prescriptions/dispense', {
       method: 'POST',
       body: JSON.stringify({
         patientId: state.patientId,
@@ -527,34 +631,112 @@ async function dispense() {
         retailPriceCents: Math.round(Number(document.getElementById('retailPrice').value) * 100)
       })
     });
-    render('dispense-result', result, false);
+    state.prescriptionId = prescription.id;
+    render('dispense-result', prescription, false);
+    renderBillBanner(prescription);
   } catch (e) {
     render('dispense-result', e.message, true);
   }
 }
 
-async function findMatch() {
-  const box = document.getElementById('match-result');
+async function draftPairing() {
+  const box = document.getElementById('pairing-result');
   try {
     await ensurePatient();
   } catch (e) {
-    render('match-result', e.message, true);
+    render('pairing-result', e.message, true);
     return;
   }
 
   box.textContent = '';
   box.classList.remove('error');
+  document.getElementById('consent-section').style.display = 'none';
+  document.getElementById('decision-section').style.display = 'none';
+  await loadProgramOptions();
 
-  const source = new EventSource('/api/insurance-matches/stream?patientId=' + state.patientId);
+  const source = new EventSource('/api/insurance-applications/stream?patientId=' + state.patientId);
   source.onmessage = (event) => {
     box.textContent += JSON.parse(event.data);
   };
-  source.addEventListener('done', () => {
+  source.addEventListener('done', (event) => {
     source.close();
+    if (event.data) {
+      state.applicationId = Number(event.data);
+      document.getElementById('consent-section').style.display = 'block';
+    }
   });
   source.addEventListener('error', () => {
     source.close();
   });
+}
+
+async function submitConsent(agree) {
+  try {
+    if (!state.applicationId) throw new Error('Draft a coverage pairing first');
+    const application = await api('/api/insurance-applications/' + state.applicationId + '/consent', {
+      method: 'POST',
+      body: JSON.stringify({
+        programName: document.getElementById('programSelect').value,
+        consentText: document.getElementById('consentCheckbox').checked
+            ? 'Patient agreed to have this application filed using their verified unemployment status.'
+            : '',
+        agree: agree
+      })
+    });
+    render('consent-result', application, application.status === 'DECLINED');
+    if (application.status === 'SUBMITTED') {
+      document.getElementById('decision-section').style.display = 'block';
+    }
+  } catch (e) {
+    render('consent-result', e.message, true);
+  }
+}
+
+async function recordDecision(status) {
+  try {
+    if (!state.applicationId) throw new Error('Draft a coverage pairing first');
+    const application = await api('/api/insurance-applications/' + state.applicationId + '/decision?status=' + status, {
+      method: 'POST'
+    });
+    render('decision-result', application, application.status === 'DENIED');
+  } catch (e) {
+    render('decision-result', e.message, true);
+  }
+}
+
+async function submitAppeal() {
+  try {
+    if (!state.prescriptionId) throw new Error('Dispense first (step 2)');
+    if (!state.applicationId) throw new Error('Get an approved coverage pairing first (step 3)');
+    const appeal = await api('/api/pharmacy-appeals', {
+      method: 'POST',
+      body: JSON.stringify({
+        prescriptionId: state.prescriptionId,
+        insuranceApplicationId: state.applicationId
+      })
+    });
+    state.appealId = appeal.id;
+    render('appeal-result', appeal, false);
+    document.getElementById('appeal-decision-section').style.display = 'block';
+  } catch (e) {
+    render('appeal-result', e.message, true);
+  }
+}
+
+async function advanceAppeal(status) {
+  try {
+    if (!state.appealId) throw new Error('File an appeal first');
+    const appeal = await api('/api/pharmacy-appeals/' + state.appealId + '/decision?status=' + status, {
+      method: 'POST'
+    });
+    render('appeal-decision-result', appeal, appeal.status === 'DENIED');
+    if (appeal.status === 'PAID') {
+      const prescription = await api('/api/prescriptions/' + state.prescriptionId).catch(() => null);
+      if (prescription) renderBillBanner(prescription);
+    }
+  } catch (e) {
+    render('appeal-decision-result', e.message, true);
+  }
 }
 
 document.getElementById('caseNumber').addEventListener('input', (e) => {

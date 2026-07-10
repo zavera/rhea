@@ -48,6 +48,15 @@ public class Prescription {
     @Column(name = "retail_price_cents", nullable = false)
     private Long retailPriceCents;
 
+    /**
+     * Patient is billed at retail price by default. Only flips to PAID_BY_INSURANCE once a
+     * {@link PharmacyAppeal} against an approved {@link InsuranceApplication} is paid --
+     * there is no automatic $0 dispense.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "bill_status", nullable = false)
+    private BillStatus billStatus = BillStatus.PATIENT_OWES;
+
     @Column(name = "dispensed_at")
     private Instant dispensedAt;
 
@@ -137,5 +146,13 @@ public class Prescription {
 
     public void setDispensedAt(Instant dispensedAt) {
         this.dispensedAt = dispensedAt;
+    }
+
+    public BillStatus getBillStatus() {
+        return billStatus;
+    }
+
+    public void setBillStatus(BillStatus billStatus) {
+        this.billStatus = billStatus;
     }
 }

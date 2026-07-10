@@ -2,10 +2,10 @@ package org.callistotech.rhea.service;
 
 import org.callistotech.rhea.dto.CreatePatientRequest;
 import org.callistotech.rhea.model.Patient;
-import org.callistotech.rhea.repository.InsuranceMatchRecommendationRepository;
+import org.callistotech.rhea.repository.InsuranceApplicationRepository;
 import org.callistotech.rhea.repository.PatientRepository;
+import org.callistotech.rhea.repository.PharmacyAppealRepository;
 import org.callistotech.rhea.repository.PrescriptionRepository;
-import org.callistotech.rhea.repository.ReimbursementClaimRepository;
 import org.callistotech.rhea.repository.UnemploymentVerificationRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -20,21 +20,21 @@ public class PatientService {
     private final PatientRepository patientRepository;
     private final UnemploymentVerificationRepository verificationRepository;
     private final PrescriptionRepository prescriptionRepository;
-    private final ReimbursementClaimRepository claimRepository;
-    private final InsuranceMatchRecommendationRepository recommendationRepository;
+    private final PharmacyAppealRepository appealRepository;
+    private final InsuranceApplicationRepository applicationRepository;
     private final boolean demoResetDuplicates;
 
     public PatientService(PatientRepository patientRepository,
                            UnemploymentVerificationRepository verificationRepository,
                            PrescriptionRepository prescriptionRepository,
-                           ReimbursementClaimRepository claimRepository,
-                           InsuranceMatchRecommendationRepository recommendationRepository,
+                           PharmacyAppealRepository appealRepository,
+                           InsuranceApplicationRepository applicationRepository,
                            @Value("${rhea.demo-reset-duplicates:false}") boolean demoResetDuplicates) {
         this.patientRepository = patientRepository;
         this.verificationRepository = verificationRepository;
         this.prescriptionRepository = prescriptionRepository;
-        this.claimRepository = claimRepository;
-        this.recommendationRepository = recommendationRepository;
+        this.appealRepository = appealRepository;
+        this.applicationRepository = applicationRepository;
         this.demoResetDuplicates = demoResetDuplicates;
     }
 
@@ -50,10 +50,10 @@ public class PatientService {
             Optional<Patient> existing = patientRepository.findByStateCaseNumber(request.stateCaseNumber());
             if (existing.isPresent()) {
                 Long patientId = existing.get().getId();
-                claimRepository.deleteByPrescription_Patient_Id(patientId);
+                appealRepository.deleteByPrescription_Patient_Id(patientId);
                 prescriptionRepository.deleteByPatient_Id(patientId);
                 verificationRepository.deleteByPatient_Id(patientId);
-                recommendationRepository.deleteByPatient_Id(patientId);
+                applicationRepository.deleteByPatient_Id(patientId);
                 patientRepository.delete(existing.get());
                 patientRepository.flush();
             }

@@ -1,10 +1,10 @@
 package org.callistotech.rhea.service;
 
 import org.callistotech.rhea.dto.DispenseRequest;
-import org.callistotech.rhea.dto.DispenseResult;
-import org.callistotech.rhea.model.ClaimStatus;
+import org.callistotech.rhea.model.BillStatus;
 import org.callistotech.rhea.model.Patient;
 import org.callistotech.rhea.model.Pharmacy;
+import org.callistotech.rhea.model.Prescription;
 import org.callistotech.rhea.model.PrescriptionStatus;
 import org.callistotech.rhea.model.UnemploymentVerification;
 import org.callistotech.rhea.model.VerificationStatus;
@@ -37,21 +37,19 @@ class DispenseServiceIT {
     private DispenseService dispenseService;
 
     @Test
-    void dispensesAtZeroCostAndFilesReimbursementClaim() {
+    void dispensesAndBillsPatientByDefault() {
         Patient patient = patientRepository.save(patient("CASE-DISPENSE-1"));
         Pharmacy pharmacy = pharmacyRepository.save(pharmacy());
         UnemploymentVerification verification = verificationService.verify(patient, "CO-2026-000123");
         assertThat(verification.getStatus()).isEqualTo(VerificationStatus.VERIFIED);
 
-        DispenseResult result = dispenseService.dispense(new DispenseRequest(
+        Prescription prescription = dispenseService.dispense(new DispenseRequest(
                 patient.getId(), pharmacy.getId(), verification.getId(),
-                "Metformin 500mg", "00093-1048-01", 60, 30, "1234567890", 4250L, null));
+                "Metformin 500mg", "00093-1048-01", 60, 30, "1234567890", 4250L));
 
-        assertThat(result.prescription().getStatus()).isEqualTo(PrescriptionStatus.DISPENSED);
-        assertThat(result.patientOwesCents()).isZero();
-        assertThat(result.claim().getClaimAmountCents()).isEqualTo(4250L);
-        assertThat(result.claim().getStatus()).isEqualTo(ClaimStatus.SUBMITTED);
-        assertThat(result.claim().getStateProgram()).isEqualTo("Colorado Indigent Care Program (CICP)");
+        assertThat(prescription.getStatus()).isEqualTo(PrescriptionStatus.DISPENSED);
+        assertThat(prescription.getRetailPriceCents()).isEqualTo(4250L);
+        assertThat(prescription.getBillStatus()).isEqualTo(BillStatus.PATIENT_OWES);
     }
 
     @Test
@@ -63,7 +61,7 @@ class DispenseServiceIT {
 
         DispenseRequest request = new DispenseRequest(
                 patient.getId(), pharmacy.getId(), verification.getId(),
-                "Metformin 500mg", "00093-1048-01", 60, 30, "1234567890", 4250L, null);
+                "Metformin 500mg", "00093-1048-01", 60, 30, "1234567890", 4250L);
 
         assertThatThrownBy(() -> dispenseService.dispense(request))
                 .isInstanceOf(IllegalStateException.class)

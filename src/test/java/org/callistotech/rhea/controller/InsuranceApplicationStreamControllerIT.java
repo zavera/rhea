@@ -1,6 +1,8 @@
 package org.callistotech.rhea.controller;
 
+import org.callistotech.rhea.model.ApplicationStatus;
 import org.callistotech.rhea.model.Patient;
+import org.callistotech.rhea.repository.InsuranceApplicationRepository;
 import org.callistotech.rhea.repository.PatientRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -21,6 +23,7 @@ import reactor.core.publisher.Flux;
 import java.time.LocalDate;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -32,12 +35,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * The AI layer is mocked here per the Callisto brand testing rules, same as
- * InsuranceMatchAgentServiceIT, but exercises the SSE endpoint end to end.
+ * InsuranceApplicationServiceIT, but exercises the SSE draft endpoint end to end.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-class InsuranceMatchStreamControllerIT {
+class InsuranceApplicationStreamControllerIT {
 
     @MockitoBean
     private ChatModel chatModel;
@@ -48,9 +51,12 @@ class InsuranceMatchStreamControllerIT {
     @Autowired
     private PatientRepository patientRepository;
 
+    @Autowired
+    private InsuranceApplicationRepository applicationRepository;
+
     @Test
     @WithMockUser(roles = "PHARMACY_STAFF")
-    void streamsRawTextChunksAndSendsDoneEvent() throws Exception {
+    void streamsRawTextChunksAndPersistsADraftedApplication() throws Exception {
         when(chatModel.stream(any(Prompt.class))).thenReturn(Flux.just(
                 chatResponseChunk("Best fit: "),
                 chatResponseChunk("Health First Colorado.")));
@@ -62,7 +68,7 @@ class InsuranceMatchStreamControllerIT {
         patient.setStateCaseNumber("CASE-STREAM-1");
         patient = patientRepository.save(patient);
 
-        MvcResult mvcResult = mockMvc.perform(get("/api/insurance-matches/stream")
+        MvcResult mvcResult = mockMvc.perform(get("/api/insurance-applications/stream")
                         .param("patientId", String.valueOf(patient.getId())))
                 .andExpect(request().asyncStarted())
                 .andReturn();
@@ -71,6 +77,12 @@ class InsuranceMatchStreamControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Health First Colorado")))
                 .andExpect(content().string(containsString("event:done")));
+
+        assertThat(applicationRepository.findAll())
+                .anySatisfy(application -> {
+                    assertThat(application.getStatus()).isEqualTo(ApplicationStatus.DRAFTED);
+                    assertThat(application.getAiSummary()).contains("Health First Colorado");
+                });
     }
 
     private ChatResponse chatResponseChunk(String text) {
