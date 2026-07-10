@@ -1,0 +1,2 @@
+ALTER TABLE unemployment_verifications ADD COLUMN unemployment_start_date DATE;
+ALTER TABLE unemployment_verifications ADD COLUMN weekly_benefit_amount_cents BIGINT;

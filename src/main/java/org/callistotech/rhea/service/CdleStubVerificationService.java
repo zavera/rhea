@@ -6,6 +6,9 @@ import org.callistotech.rhea.model.VerificationStatus;
 import org.callistotech.rhea.repository.UnemploymentVerificationRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.time.format.DateTimeFormatter;
 import java.util.regex.Pattern;
 
 /**
@@ -21,6 +24,11 @@ public class CdleStubVerificationService implements UnemploymentVerificationServ
     private static final Pattern CLAIM_NUMBER_PATTERN = Pattern.compile("^CO-\\d{4}-\\d{6}$");
     private static final String SOURCE = "CDLE-STUB";
     private static final String MANUAL_OVERRIDE_SOURCE = "MANUAL_MANAGER_OVERRIDE";
+    private static final DateTimeFormatter DISPLAY_DATE = DateTimeFormatter.ofPattern("MMMM d, yyyy");
+
+    // Fixed placeholder amount for demo purposes; a real CDLE integration would return the
+    // claimant's actual computed weekly benefit amount, not a constant.
+    private static final long DEMO_WEEKLY_BENEFIT_AMOUNT_CENTS = 45000L;
 
     private final UnemploymentVerificationRepository repository;
 
@@ -36,13 +44,23 @@ public class CdleStubVerificationService implements UnemploymentVerificationServ
         verification.setSource(SOURCE);
 
         if (cdleClaimNumber != null && CLAIM_NUMBER_PATTERN.matcher(cdleClaimNumber).matches()) {
+            LocalDate startDate = verification.getVerifiedAt()
+                    .atZone(java.time.ZoneOffset.UTC)
+                    .toLocalDate()
+                    .minus(8, ChronoUnit.WEEKS);
             verification.setStatus(VerificationStatus.VERIFIED);
-            verification.setRawResponse("Active unemployment claim confirmed for claim number "
-                    + cdleClaimNumber + " (stub CDLE response -- format CO-YYYY-NNNNNN).");
+            verification.setUnemploymentStartDate(startDate);
+            verification.setWeeklyBenefitAmountCents(DEMO_WEEKLY_BENEFIT_AMOUNT_CENTS);
+            verification.setRawResponse(("Active unemployment insurance claim %s confirmed for %s %s. "
+                    + "Benefits began %s. Weekly benefit amount: $%.2f. Verified at %s.").formatted(
+                    cdleClaimNumber, patient.getFirstName(), patient.getLastName(),
+                    startDate.format(DISPLAY_DATE),
+                    DEMO_WEEKLY_BENEFIT_AMOUNT_CENTS / 100.0,
+                    verification.getVerifiedAt()));
         } else {
             verification.setStatus(VerificationStatus.NOT_FOUND);
-            verification.setRawResponse("No active claim found matching format CO-YYYY-NNNNNN "
-                    + "(stub CDLE response).");
+            verification.setRawResponse("No active unemployment insurance claim found matching state "
+                    + "case number format CO-YYYY-NNNNNN. Verified at " + verification.getVerifiedAt() + ".");
         }
 
         return repository.save(verification);

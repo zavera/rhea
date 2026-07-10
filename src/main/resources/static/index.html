@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="/callisto_high.png">
 <title>Rhea -- $0 Prescriptions for Unemployed Coloradans</title>
 <meta name="description" content="Rhea verifies unemployment status with the State of Colorado, dispenses medicine for $0 at the pharmacy counter, files the state reimbursement claim, and uses an AI agent to find the patient a qualifying ongoing insurance program.">
 <meta name="robots" content="index, follow">
@@ -81,6 +82,18 @@ nav {
   top: 0;
   z-index: 100;
   box-shadow: 0 2px 16px rgba(0,0,0,0.35);
+}
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+.nav-logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  object-fit: cover;
 }
 .nav-brand-name {
   font-family: 'Josefin Sans', sans-serif;
@@ -203,15 +216,6 @@ label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: 
 }
 .btn-dark:hover { filter: brightness(1.15); }
 
-.notice {
-  background: #fffbeb;
-  border: 1px solid #fcd34d;
-  border-radius: 8px;
-  padding: 14px 16px;
-  font-size: 13px;
-  color: #92400e;
-  margin-bottom: 24px;
-}
 .highlight-box-gold {
   background: #fdf8f2;
   border-left: 4px solid var(--primary-dk);
@@ -266,7 +270,10 @@ footer {
 <a href="#main" class="skip-link">Skip to main content</a>
 
 <nav>
-  <a href="/" class="nav-brand-name">RHEA</a>
+  <a href="/" class="nav-brand">
+    <img src="/callisto_high.png" alt="Callisto" class="nav-logo">
+    <span class="nav-brand-name">RHEA</span>
+  </a>
   <span class="nav-tagline">$0 Rx access for unemployed Coloradans</span>
   <div class="nav-links">
     <a class="nav-link" href="#verify-block">Verify</a>
@@ -278,10 +285,6 @@ footer {
 </nav>
 
 <main id="main" class="page">
-  <div class="notice">Demo credentials: <strong>pharmacist / changeme-local-dev</strong>. Try state case number
-    <strong>CO-2026-000123</strong> for a verified result, or any other format for a not-found result. Data
-    entered here does not persist across server restarts.</div>
-
   <div class="card" id="verify-block">
     <span class="badge">Step 1</span>
     <h2>Patient &amp; unemployment verification</h2>
@@ -489,16 +492,27 @@ async function dispense() {
 }
 
 async function findMatch() {
+  const box = document.getElementById('match-result');
   try {
     await ensurePatient();
-    const match = await api('/api/insurance-matches', {
-      method: 'POST',
-      body: JSON.stringify({ patientId: state.patientId })
-    });
-    render('match-result', match, false);
   } catch (e) {
     render('match-result', e.message, true);
+    return;
   }
+
+  box.textContent = '';
+  box.classList.remove('error');
+
+  const source = new EventSource('/api/insurance-matches/stream?patientId=' + state.patientId);
+  source.onmessage = (event) => {
+    box.textContent += JSON.parse(event.data);
+  };
+  source.addEventListener('done', () => {
+    source.close();
+  });
+  source.addEventListener('error', () => {
+    source.close();
+  });
 }
 
 document.getElementById('caseNumber').addEventListener('input', (e) => {

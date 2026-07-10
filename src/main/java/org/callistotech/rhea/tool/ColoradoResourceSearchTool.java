@@ -22,18 +22,19 @@ public class ColoradoResourceSearchTool {
 
     @Tool(description = "Search live web results for Colorado state public assistance and health "
             + "insurance programs (e.g. Health First Colorado, Connect for Health Colorado, CICP). "
-            + "Use this to confirm current eligibility rules, enrollment windows, or application links "
-            + "before recommending a program to a patient.")
+            + "Colorado and unemployment status are always the two governing criteria for this search, "
+            + "on top of whatever else the query asks. Use this to confirm current eligibility rules, "
+            + "enrollment windows, or application links before recommending a program to a patient.")
     public String searchColoradoPublicResources(
-            @ToolParam(description = "Search query, e.g. 'Colorado special enrollment period after job loss'")
+            @ToolParam(description = "Search query, e.g. 'special enrollment period after job loss'")
             String query) {
         if (!tavilySearchClient.isConfigured()) {
             return "Live search is unavailable (TAVILY_API_KEY not configured). "
                     + "Answer using only the known-programs list already provided in the prompt.";
         }
         try {
-            List<TavilySearchClient.TavilyResult> results =
-                    tavilySearchClient.search(query + " Colorado state program site:.gov OR site:.org");
+            String scopedQuery = "Colorado unemployment " + query + " state program site:.gov OR site:.org";
+            List<TavilySearchClient.TavilyResult> results = tavilySearchClient.search(scopedQuery);
             if (results.isEmpty()) {
                 return "No live search results found for: " + query;
             }

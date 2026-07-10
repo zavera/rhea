@@ -11,6 +11,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "unemployment_verifications")
@@ -44,6 +45,12 @@ public class UnemploymentVerification {
 
     @Column(name = "manager_notes")
     private String managerNotes;
+
+    @Column(name = "unemployment_start_date")
+    private LocalDate unemploymentStartDate;
+
+    @Column(name = "weekly_benefit_amount_cents")
+    private Long weeklyBenefitAmountCents;
 
     public Long getId() {
         return id;
@@ -115,5 +122,21 @@ public class UnemploymentVerification {
 
     public void setManagerNotes(String managerNotes) {
         this.managerNotes = managerNotes;
+    }
+
+    public LocalDate getUnemploymentStartDate() {
+        return unemploymentStartDate;
+    }
+
+    public void setUnemploymentStartDate(LocalDate unemploymentStartDate) {
+        this.unemploymentStartDate = unemploymentStartDate;
+    }
+
+    public Long getWeeklyBenefitAmountCents() {
+        return weeklyBenefitAmountCents;
+    }
+
+    public void setWeeklyBenefitAmountCents(Long weeklyBenefitAmountCents) {
+        this.weeklyBenefitAmountCents = weeklyBenefitAmountCents;
     }
 }
