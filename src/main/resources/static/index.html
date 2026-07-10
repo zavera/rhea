@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rhea -- $0 Prescriptions for Unemployed Coloradans</title>
+<meta name="description" content="Rhea verifies unemployment status with the State of Colorado, dispenses medicine for $0 at the pharmacy counter, files the state reimbursement claim, and uses an AI agent to find the patient a qualifying ongoing insurance program.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://rhea.callistotech.org/">
+<meta name="author" content="Rhea">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://rhea.callistotech.org/">
+<meta property="og:title" content="Rhea -- $0 Prescriptions for Unemployed Coloradans">
+<meta property="og:description" content="Verified unemployment status. $0 at the counter. AI-matched ongoing coverage.">
+<meta property="og:site_name" content="Rhea">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Rhea -- $0 Prescriptions for Unemployed Coloradans">
+<meta name="twitter:description" content="Verified unemployment status. $0 at the counter. AI-matched ongoing coverage.">
+
+<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --navy:       #2d3040;
+  --navy-lt:    #3a3f55;
+  --primary:    #C9A87C;
+  --primary-dk: #A68A5E;
+  --primary-lt: #EAD9C0;
+  --accent:     #2d7a4f;
+  --bg:         #f0f1f5;
+  --card:       #ffffff;
+  --text:       #1a1a1a;
+  --muted:      #666666;
+  --border:     #e0e0e0;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 8px;
+  padding: 8px 16px;
+  background: var(--navy);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 0 0 6px 6px;
+  z-index: 9999;
+  text-decoration: none;
+  transition: top .15s;
+}
+.skip-link:focus { top: 0; }
+
+a:focus-visible, button:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+nav {
+  background: var(--navy);
+  min-height: 64px;
+  padding: 10px 32px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.35);
+}
+.nav-brand-name {
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 18px;
+  font-weight: 300;
+  color: var(--primary);
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+.nav-tagline {
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  margin-right: auto;
+}
+.nav-links { display: flex; gap: 6px; }
+.nav-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.7);
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: color .15s, background .15s;
+  text-decoration: none;
+}
+.nav-link:hover { color: #fff; background: rgba(255,255,255,0.08); }
+.nav-cta {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy);
+  background: var(--primary);
+  padding: 8px 18px;
+  border-radius: 20px;
+  transition: filter .15s;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.nav-cta:hover { filter: brightness(1.1); }
+.nav-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 32px 20px 72px;
+}
+
+.card {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 28px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--primary);
+}
+.card h2 { font-size: 19px; font-weight: 800; margin: 8px 0 16px; }
+.card h3.sub-heading {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--muted);
+  margin: 24px 0 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--primary-lt);
+  color: var(--primary-dk);
+}
+
+input, select {
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font-family: inherit;
+  color: var(--text);
+  background: #fff;
+  padding: 10px 12px;
+  font-size: 14px;
+  transition: border-color .15s;
+  width: 100%;
+}
+input:focus, select:focus { border-color: var(--primary); }
+input:focus-visible, select:focus-visible { outline: 3px solid var(--primary); outline-offset: 1px; }
+input[readonly] { background: var(--bg); color: var(--muted); cursor: not-allowed; }
+label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; display: block; margin-bottom: 6px; }
+.field { margin-bottom: 14px; }
+
+.btn-dark {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-lt) 100%);
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 800;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: filter .15s;
+  width: 100%;
+}
+.btn-dark:hover { filter: brightness(1.15); }
+
+.notice {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 13px;
+  color: #92400e;
+  margin-bottom: 24px;
+}
+.highlight-box-gold {
+  background: #fdf8f2;
+  border-left: 4px solid var(--primary-dk);
+  border-radius: 0 8px 8px 0;
+  padding: 14px 16px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.result-box {
+  background: var(--navy);
+  color: #d7f9e4;
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-top: 12px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.result-box.error { color: #ffb4b4; }
+.result-box:empty { display: none; }
+
+footer {
+  background: var(--navy);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding: 28px 32px;
+  text-align: center;
+}
+.footer-brand {
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 300;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: 12px;
+}
+.footer-links a { font-size: 12px; color: rgba(255,255,255,0.45); margin: 0 8px; text-decoration: none; }
+.footer-links a:hover { color: rgba(255,255,255,0.8); }
+.footer-copy { font-size: 11px; color: rgba(255,255,255,0.25); margin-top: 10px; }
+
+@media (max-width: 640px) {
+  nav { padding: 10px 16px; }
+  .page { padding: 24px 16px 52px; }
+}
+</style>
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<nav>
+  <a href="/" class="nav-brand-name">RHEA</a>
+  <span class="nav-tagline">$0 Rx access for unemployed Coloradans</span>
+  <div class="nav-links">
+    <a class="nav-link" href="#verify-block">Verify</a>
+    <a class="nav-link" href="#dispense-block">Dispense</a>
+    <a class="nav-link" href="#match-block">Insurance match</a>
+  </div>
+  <span class="nav-status" id="nav-status"></span>
+  <a class="nav-cta" href="/login" id="nav-login">Pharmacy staff login</a>
+</nav>
+
+<main id="main" class="page">
+  <div class="notice">Demo credentials: <strong>pharmacist / changeme-local-dev</strong>. Try state case number
+    <strong>CO-2026-000123</strong> for a verified result, or any other format for a not-found result. Data
+    entered here does not persist across server restarts.</div>
+
+  <div class="card" id="verify-block">
+    <span class="badge">Step 1</span>
+    <h2>Patient &amp; unemployment verification</h2>
+
+    <div class="field"><label for="firstName">First name</label><input id="firstName" value="Jordan"></div>
+    <div class="field"><label for="lastName">Last name</label><input id="lastName" value="Reyes"></div>
+    <div class="field"><label for="dob">Date of birth</label><input id="dob" type="date" value="1990-05-14"></div>
+    <div class="field"><label for="caseNumber">State case number</label><input id="caseNumber" value="CO-2026-000123"></div>
+    <button class="btn-dark" onclick="createPatient()">Create patient</button>
+    <div class="result-box" id="patient-result"></div>
+
+    <h3 class="sub-heading">CDLE verification</h3>
+    <div class="field"><label for="claimNumber">CDLE claim number (looked up automatically from state case number)</label><input id="claimNumber" value="CO-2026-000123" readonly></div>
+    <button class="btn-dark" onclick="verifyUnemployment()">Verify with CDLE</button>
+    <div class="result-box" id="verification-result"></div>
+
+    <h3 class="sub-heading">Manager override</h3>
+    <div class="highlight-box-gold">Portal unavailable or claim not found? A pharmacy manager can confirm
+      unemployment status manually (e.g. from a printed CDLE confirmation letter). This bypasses the
+      automated check, so the confirming manager and reasoning are recorded for the audit trail.</div>
+    <div class="field"><label for="managerName">Manager name</label><input id="managerName" placeholder="e.g. Alex Kim, Pharmacy Manager"></div>
+    <div class="field"><label for="managerNotes">Notes</label><input id="managerNotes" placeholder="e.g. Verified via printed CDLE confirmation letter dated..."></div>
+    <button class="btn-dark" onclick="manualOverride()">Confirm verified (manager override)</button>
+    <div class="result-box" id="override-result"></div>
+  </div>
+
+  <div class="card" id="dispense-block">
+    <span class="badge">Step 2</span>
+    <h2>Dispense at $0</h2>
+    <div class="field"><label for="drugName">Drug</label><input id="drugName" value="Metformin 500mg"></div>
+    <div class="field"><label for="ndcCode">NDC code</label><input id="ndcCode" value="00093-1048-01"></div>
+    <div class="field"><label for="quantity">Quantity</label><input id="quantity" type="number" value="60"></div>
+    <div class="field"><label for="daysSupply">Days supply</label><input id="daysSupply" type="number" value="30"></div>
+    <div class="field"><label for="prescriberNpi">Prescriber NPI</label><input id="prescriberNpi" value="1234567890"></div>
+    <div class="field"><label for="retailPrice">Retail price (USD)</label><input id="retailPrice" type="number" step="0.01" value="42.50"></div>
+    <button class="btn-dark" onclick="dispense()">Dispense for $0</button>
+    <div class="result-box" id="dispense-result"></div>
+  </div>
+
+  <div class="card" id="match-block">
+    <span class="badge">Step 3</span>
+    <h2>AI insurance match</h2>
+    <p style="color:var(--muted); margin-top:0">Finds the patient a qualifying ongoing insurance program using
+      live Colorado public resource search.</p>
+    <button class="btn-dark" onclick="findMatch()">Find insurance program</button>
+    <div class="result-box" id="match-result"></div>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-brand">RHEA</div>
+  <div class="footer-links">
+    <a href="/actuator/health">Status</a>
+    <a href="mailto:ambreen@callistotech.org">Contact</a>
+  </div>
+  <div class="footer-copy">&copy; 2025-2026 Callisto Consulting Group LLC DBA Callisto Tech. All rights reserved.</div>
+</footer>
+
+<script>
+let state = { patientId: null, verificationId: null, pharmacyId: null };
+
+function render(elId, data, isError) {
+  const el = document.getElementById(elId);
+  el.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+  el.classList.toggle('error', !!isError);
+}
+
+async function api(path, options) {
+  const res = await fetch(path, Object.assign({ headers: { 'Content-Type': 'application/json' } }, options));
+  const text = await res.text();
+  let body;
+  try { body = JSON.parse(text); } catch (e) { body = text; }
+  if (!res.ok) {
+    const message = (body && body.message) ? body.message : (typeof body === 'string' ? body : res.statusText);
+    throw new Error(res.status + ': ' + message);
+  }
+  return body;
+}
+
+async function checkAuthStatus() {
+  const config = await api('/api/config').catch(() => ({ requireAuth: true }));
+  if (!config.requireAuth) {
+    document.getElementById('nav-status').textContent = 'Demo mode -- login disabled';
+    document.getElementById('nav-login').style.display = 'none';
+    return;
+  }
+  try {
+    await api('/api/patients');
+    document.getElementById('nav-status').textContent = 'Signed in as pharmacy staff';
+    document.getElementById('nav-login').textContent = 'Switch user';
+  } catch (e) {
+    document.getElementById('nav-status').textContent = 'Not signed in';
+  }
+}
+
+async function ensurePharmacy() {
+  if (state.pharmacyId) return state.pharmacyId;
+  const list = await api('/api/pharmacies');
+  if (list.length > 0) {
+    state.pharmacyId = list[0].id;
+    return state.pharmacyId;
+  }
+  const created = await api('/api/pharmacies', {
+    method: 'POST',
+    body: JSON.stringify({
+      ncpdpId: 'DEMO0001',
+      name: 'Rhea Community Pharmacy (Demo)',
+      address: '123 Colfax Ave',
+      city: 'Denver',
+      state: 'CO',
+      zip: '80203'
+    })
+  });
+  state.pharmacyId = created.id;
+  return state.pharmacyId;
+}
+
+async function createPatientRecord() {
+  const patient = await api('/api/patients', {
+    method: 'POST',
+    body: JSON.stringify({
+      firstName: document.getElementById('firstName').value,
+      lastName: document.getElementById('lastName').value,
+      dateOfBirth: document.getElementById('dob').value,
+      stateCaseNumber: document.getElementById('caseNumber').value
+    })
+  });
+  state.patientId = patient.id;
+  render('patient-result', patient, false);
+  return patient;
+}
+
+async function ensurePatient() {
+  if (state.patientId) return state.patientId;
+  await createPatientRecord();
+  return state.patientId;
+}
+
+async function createPatient() {
+  try {
+    await createPatientRecord();
+  } catch (e) {
+    render('patient-result', e.message, true);
+  }
+}
+
+async function verifyUnemployment() {
+  try {
+    await ensurePatient();
+    const verification = await api('/api/verifications', {
+      method: 'POST',
+      body: JSON.stringify({
+        patientId: state.patientId,
+        cdleClaimNumber: document.getElementById('claimNumber').value
+      })
+    });
+    state.verificationId = verification.id;
+    render('verification-result', verification, verification.status !== 'VERIFIED');
+  } catch (e) {
+    render('verification-result', e.message, true);
+  }
+}
+
+async function manualOverride() {
+  try {
+    await ensurePatient();
+    const verification = await api('/api/verifications/manual-override', {
+      method: 'POST',
+      body: JSON.stringify({
+        patientId: state.patientId,
+        managerName: document.getElementById('managerName').value,
+        managerNotes: document.getElementById('managerNotes').value
+      })
+    });
+    state.verificationId = verification.id;
+    render('override-result', verification, false);
+  } catch (e) {
+    render('override-result', e.message, true);
+  }
+}
+
+async function dispense() {
+  try {
+    await ensurePatient();
+    if (!state.verificationId) throw new Error('Verify unemployment first (CDLE or manager override)');
+    const pharmacyId = await ensurePharmacy();
+    const result = await api('/api/prescriptions/dispense', {
+      method: 'POST',
+      body: JSON.stringify({
+        patientId: state.patientId,
+        pharmacyId: pharmacyId,
+        verificationId: state.verificationId,
+        drugName: document.getElementById('drugName').value,
+        ndcCode: document.getElementById('ndcCode').value,
+        quantity: Number(document.getElementById('quantity').value),
+        daysSupply: Number(document.getElementById('daysSupply').value),
+        prescriberNpi: document.getElementById('prescriberNpi').value,
+        retailPriceCents: Math.round(Number(document.getElementById('retailPrice').value) * 100)
+      })
+    });
+    render('dispense-result', result, false);
+  } catch (e) {
+    render('dispense-result', e.message, true);
+  }
+}
+
+async function findMatch() {
+  try {
+    await ensurePatient();
+    const match = await api('/api/insurance-matches', {
+      method: 'POST',
+      body: JSON.stringify({ patientId: state.patientId })
+    });
+    render('match-result', match, false);
+  } catch (e) {
+    render('match-result', e.message, true);
+  }
+}
+
+document.getElementById('caseNumber').addEventListener('input', (e) => {
+  document.getElementById('claimNumber').value = e.target.value;
+});
+
+checkAuthStatus();
+</script>
+</body>
+</html>
