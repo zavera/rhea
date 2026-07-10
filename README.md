@@ -10,9 +10,9 @@ Built under the Callisto brand system (Callisto Consulting Group LLC DBA Callist
 2. **Dispense at $0** -- once verified, the pharmacist dispenses the prescription for $0.
    Rhea records the dispense and immediately files a reimbursement claim against a state
    program (default: Colorado Indigent Care Program) on the pharmacy's behalf.
-3. **AI insurance match** -- an AI agent (Groq / Llama 3.3 70B via Spring AI, tool-calling
-   into Tavily live search) finds the patient a real, currently-available Colorado public
-   insurance program to enroll in for ongoing coverage.
+3. **AI insurance match** -- an AI agent (Groq / `openai/gpt-oss-120b` via Spring AI,
+   tool-calling into Tavily live search) finds the patient a real, currently-available
+   Colorado public insurance program to enroll in for ongoing coverage.
 
 ## Database decision
 
