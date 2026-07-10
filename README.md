@@ -1,18 +1,27 @@
 # Rhea
 
-$0 prescriptions for unemployed Coloradans, verified and reimbursed automatically.
+Coverage pairing for unemployed Coloradans: verified unemployment status becomes the
+eligibility signal for an AI-assisted application to a real state program, with the
+pharmacy appealing the original bill once that application is approved.
 
 Built under the Callisto brand system (Callisto Consulting Group LLC DBA Callisto Tech).
 
 ## What it does
 
 1. **Verify** -- the pharmacy confirms a patient's active Colorado unemployment claim.
-2. **Dispense at $0** -- once verified, the pharmacist dispenses the prescription for $0.
-   Rhea records the dispense and immediately files a reimbursement claim against a state
-   program (default: Colorado Indigent Care Program) on the pharmacy's behalf.
-3. **AI insurance match** -- an AI agent (Groq / `openai/gpt-oss-120b` via Spring AI,
-   tool-calling into Tavily live search) finds the patient a real, currently-available
-   Colorado public insurance program to enroll in for ongoing coverage.
+2. **Dispense** -- once verified, the pharmacist dispenses the prescription. The patient is
+   billed at retail price by default -- there is no automatic $0. The bill only clears once
+   an approved application is appealed and paid (steps 3-4).
+3. **AI coverage pairing** -- an AI agent (Groq / `openai/gpt-oss-120b` via Spring AI,
+   tool-calling into Tavily live search) drafts a real, currently-available Colorado public
+   program application for the patient. Drafting never enrolls anyone: the application sits
+   at `DRAFTED` until the patient explicitly consents. Agreeing moves it to `SUBMITTED`;
+   declining moves it to `DECLINED` and nothing further happens. There is no live state API
+   to poll, so pharmacy staff record the state's decision manually (`APPROVED`/`DENIED`),
+   the same pattern already used for the CDLE manual override.
+4. **Pharmacy appeal** -- once the application is `APPROVED`, the pharmacy appeals the
+   original bill from step 2 against that program. Marking the appeal `PAID` clears the
+   prescription's bill status.
 
 ## Database decision
 
@@ -61,7 +70,7 @@ real CDLE integration by adding another `UnemploymentVerificationService` implem
 | `TAVILY_API_KEY` | Live search for the AI agent's tool calls | Yes, for live search to work |
 | `DATABASE_URL` / `DATASOURCE_*` | Only if moving off H2 | No |
 
-Without `GROQ_API_KEY` / `TAVILY_API_KEY`, the app still runs -- the AI match endpoint
+Without `GROQ_API_KEY` / `TAVILY_API_KEY`, the app still runs -- the AI pairing endpoint
 returns a graceful fallback using the curated program list instead of a live answer.
 
 ## Run locally
