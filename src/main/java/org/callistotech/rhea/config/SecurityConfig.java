@@ -64,7 +64,7 @@ public class SecurityConfig {
                         .requireExplicitSave(false))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/", "/index.html", "/login", "/login.html",
+                                "/login", "/login.html",
                                 "/api/auth/register",
                                 "/static/**", "/css/**", "/js/**",
                                 "/callisto_high.png", "/favicon.ico",
