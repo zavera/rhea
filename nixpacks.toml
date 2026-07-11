@@ -1,2 +1,5 @@
+[variables]
+NIXPACKS_JDK_VERSION = "21"
+
 [phases.setup]
-nixPkgs = ["jdk21", "maven"]
+nixPkgs = ["maven"]
