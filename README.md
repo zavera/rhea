@@ -34,12 +34,29 @@ vars. The `org.postgresql:postgresql` runtime dependency is already in `pom.xml`
 
 Note: Railway's Postgres plugin auto-injects its own `DATABASE_URL`, but in `postgresql://...`
 form -- Spring needs a `jdbc:postgresql://...` URL, so don't rely on that variable directly.
-Instead, on the **rhea service's** Variables tab, set these using Railway's `${{ServiceName.VAR}}`
-reference syntax to pull from the Postgres plugin (swap `Postgres` for your plugin's actual
-service name, visible on its own Variables tab):
+
+If Rhea shares a Postgres plugin/server with another project, give it its own **database**
+on that server rather than reusing the plugin's default one (`${{Postgres.PGDATABASE}}`) --
+this keeps Rhea's tables (`rhea_users`, `patients`, etc.) fully separate from whatever the
+other project has, even if it also has a `users` table. Create it once via the Railway CLI:
 
 ```
-DATABASE_URL=jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}
+railway link                    # select the project
+railway connect Postgres        # swap "Postgres" for your plugin's actual service name
+```
+
+then in the resulting `psql` session:
+
+```sql
+CREATE DATABASE rhea;
+```
+
+On the **rhea service's** Variables tab (not the Postgres plugin's), set these using Railway's
+`${{ServiceName.VAR}}` reference syntax for the host/port/credentials, but hardcode the new
+database name:
+
+```
+DATABASE_URL=jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/rhea
 DATASOURCE_DRIVER=org.postgresql.Driver
 DATASOURCE_USERNAME=${{Postgres.PGUSER}}
 DATASOURCE_PASSWORD=${{Postgres.PGPASSWORD}}
