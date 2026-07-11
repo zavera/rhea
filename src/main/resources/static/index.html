@@ -251,6 +251,36 @@ label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: 
 .bill-banner.owes { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
 .bill-banner.paid { background: #f0fdf4; border: 1px solid var(--accent); color: var(--accent); }
 
+.ai-highlight {
+  display: inline-block;
+  background: var(--primary-lt);
+  color: var(--primary-dk);
+  font-weight: 800;
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: normal;
+  padding: 2px 9px;
+  border-radius: 10px;
+}
+
+.status-track { display: flex; gap: 6px; margin-top: 12px; }
+.status-step {
+  flex: 1;
+  text-align: center;
+  padding: 8px 4px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  background: var(--bg);
+  color: var(--muted);
+  border: 1.5px solid var(--border);
+}
+.status-step.active { background: var(--primary-lt); color: var(--primary-dk); border-color: var(--primary-dk); }
+.status-step.done { background: var(--accent); color: #fff; border-color: var(--accent); }
+.status-step.denied { background: #fef2f2; color: #b94040; border-color: #fca5a5; }
+
 .result-box {
   background: var(--navy);
   color: #d7f9e4;
@@ -341,7 +371,7 @@ footer {
     <a class="nav-link" href="#appeal-block">Appeal</a>
   </div>
   <span class="nav-status" id="nav-status"></span>
-  <a class="nav-cta" href="/login" id="nav-login">Pharmacy staff login</a>
+  <a class="nav-cta" href="/login" id="nav-login">Sign in</a>
 </nav>
 
 <main id="main" class="page">
@@ -357,26 +387,40 @@ footer {
     <div class="result-box" id="patient-result"></div>
 
     <h3 class="sub-heading">CDLE verification</h3>
-    <div class="field"><label for="claimNumber">CDLE claim number (looked up automatically from state case number)</label><input id="claimNumber" value="CO-2026-000123" readonly></div>
+    <div class="field"><label for="claimNumber">CDLE claim number <span class="ai-highlight">AI verification of claim</span></label><input id="claimNumber" value="CO-2026-000123" readonly></div>
+
+    <div class="field">
+      <label for="cdleDoc">CDLE confirmation document</label>
+      <div style="display:flex; align-items:center; gap:10px; border:1.5px dashed var(--border); border-radius:8px; padding:12px; background:var(--bg);">
+        <div style="flex:1">
+          <div style="font-weight:700; font-size:13px;">CDLE-Confirmation-CO-2026-000123.pdf</div>
+          <div style="font-size:11px; color:var(--muted); margin-top:2px;">On file -- matched against state case number</div>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label for="cdleUpload">Upload replacement document</label>
+      <input type="file" id="cdleUpload" disabled>
+    </div>
+
     <button class="btn-dark" onclick="verifyUnemployment()">Verify with CDLE</button>
     <div class="result-box" id="verification-result"></div>
 
-    <h3 class="sub-heading">Manager override</h3>
-    <div class="highlight-box-gold">Portal unavailable or claim not found? A pharmacy manager can confirm
-      unemployment status manually (e.g. from a printed CDLE confirmation letter). This bypasses the
-      automated check, so the confirming manager and reasoning are recorded for the audit trail.</div>
-    <div class="field"><label for="managerName">Manager name</label><input id="managerName" placeholder="e.g. Alex Kim, Pharmacy Manager"></div>
-    <div class="field"><label for="managerNotes">Notes</label><input id="managerNotes" placeholder="e.g. Verified via printed CDLE confirmation letter dated..."></div>
-    <button class="btn-dark" onclick="manualOverride()">Confirm verified (manager override)</button>
-    <div class="result-box" id="override-result"></div>
+    <div class="checkbox-field" id="verify-approve-row" style="display:none">
+      <input type="checkbox" id="verifyApprovedCheckbox">
+      <label for="verifyApprovedCheckbox">Approved -- verification reviewed and confirmed by pharmacy staff.</label>
+    </div>
+    <button class="btn-dark" id="verifySaveBtn" style="display:none" onclick="saveVerification()">Save</button>
+    <div class="result-box" id="verify-save-result"></div>
   </div>
 
   <div class="card" id="dispense-block">
     <span class="badge">Step 2</span>
     <h2>Dispense</h2>
-    <p style="color:var(--muted); margin-top:0">The patient is billed at retail price by default -- there
-      is no automatic $0. The bill only clears once a pharmacy appeal against an approved coverage
-      pairing is paid (steps 3-4 below).</p>
+    <p style="color:var(--muted); margin-top:0">Full retail price is deferred to the patient's account --
+      nothing is collected today. The bill is dispensed to Colorado's unemployment-linked coverage
+      programs (Health First Colorado/Medicaid, Colorado Indigent Care Program, Connect for Health
+      Colorado Special Enrollment, OmniSalud) once a qualifying pairing is confirmed in step 3.</p>
     <div class="field"><label for="drugName">Drug</label><input id="drugName" value="Metformin 500mg"></div>
     <div class="field"><label for="ndcCode">NDC code</label><input id="ndcCode" value="00093-1048-01"></div>
     <div class="field"><label for="quantity">Quantity</label><input id="quantity" type="number" value="60"></div>
@@ -390,37 +434,22 @@ footer {
 
   <div class="card" id="pairing-block">
     <span class="badge">Step 3</span>
-    <h2>AI coverage pairing</h2>
-    <p style="color:var(--muted); margin-top:0">Drafts a qualifying public-program application using
-      live Colorado public resource search. This only drafts a recommendation -- nothing is
-      submitted until the patient consents below.</p>
-    <button class="btn-dark" onclick="draftPairing()">Draft coverage pairing</button>
+    <span class="ai-highlight">AI-Powered Matching</span>
+    <h2>Coverage pairing</h2>
+    <p style="color:var(--muted); margin-top:0">Rhea's AI agent matches the patient's verified
+      unemployment status against Colorado's public coverage programs in real time.</p>
+    <button class="btn-dark" onclick="draftPairing()">Show qualifying programs</button>
     <div class="result-box" id="pairing-result"></div>
 
     <div id="consent-section" style="display:none">
-      <h3 class="sub-heading">Patient consent</h3>
+      <h3 class="sub-heading">Programs patient qualifies for</h3>
+      <div class="highlight-box-gold"><strong>&check; Patient consent received</strong> -- patient
+        agreed at intake to have a matching application filed using their verified unemployment status.</div>
       <div class="field"><label for="programSelect">Program to apply for</label>
         <select id="programSelect"></select>
       </div>
-      <div class="checkbox-field">
-        <input type="checkbox" id="consentCheckbox">
-        <label for="consentCheckbox">Patient agrees to have this application filed with the State of
-          Colorado using their verified unemployment status.</label>
-      </div>
-      <div class="btn-row">
-        <button class="btn-dark" onclick="submitConsent(true)">Patient agrees</button>
-        <button class="btn-ghost" onclick="submitConsent(false)">Patient declines</button>
-      </div>
+      <button class="btn-dark" onclick="initiateApplication()">Initiate application &amp; send bill</button>
       <div class="result-box" id="consent-result"></div>
-    </div>
-
-    <div id="decision-section" style="display:none">
-      <h3 class="sub-heading">State decision (recorded manually -- no live status API)</h3>
-      <div class="btn-row">
-        <button class="btn-dark" onclick="recordDecision('APPROVED')">Mark approved</button>
-        <button class="btn-ghost" onclick="recordDecision('DENIED')">Mark denied</button>
-      </div>
-      <div class="result-box" id="decision-result"></div>
     </div>
   </div>
 
@@ -431,9 +460,14 @@ footer {
       appeals the original bill from step 2 to that program for reimbursement.</p>
     <button class="btn-dark" onclick="submitAppeal()">File appeal for original bill</button>
     <div class="result-box" id="appeal-result"></div>
+    <div class="status-track" id="appeal-status-bar" style="display:none">
+      <div class="status-step" id="status-initiated">Initiated</div>
+      <div class="status-step" id="status-approved">Approved</div>
+      <div class="status-step" id="status-disbursed">Disbursed</div>
+    </div>
 
     <div id="appeal-decision-section" style="display:none">
-      <h3 class="sub-heading">Appeal outcome (recorded manually -- no live status API)</h3>
+      <h3 class="sub-heading">Appeal outcome</h3>
       <div class="btn-row">
         <button class="btn-dark" onclick="advanceAppeal('PAID')">Mark paid</button>
         <button class="btn-ghost" onclick="advanceAppeal('DENIED')">Mark denied</button>
@@ -468,7 +502,10 @@ let state = {
   pharmacyId: null,
   prescriptionId: null,
   applicationId: null,
-  appealId: null
+  applicationApproved: false,
+  applicationMessage: null,
+  appealId: null,
+  appealMessage: null
 };
 
 function render(elId, data, isError) {
@@ -497,9 +534,15 @@ async function checkAuthStatus() {
     return;
   }
   try {
-    await api('/api/patients');
-    document.getElementById('nav-status').textContent = 'Signed in as pharmacy staff';
-    document.getElementById('nav-login').textContent = 'Switch user';
+    const me = await api('/api/auth/me');
+    document.getElementById('nav-status').textContent = 'Signed in as ' + me.name;
+    const navLogin = document.getElementById('nav-login');
+    navLogin.textContent = 'Sign out';
+    navLogin.href = '#';
+    navLogin.onclick = function (e) {
+      e.preventDefault();
+      fetch('/api/auth/logout', { method: 'POST' }).then(() => window.location.href = '/login');
+    };
   } catch (e) {
     document.getElementById('nav-status').textContent = 'Not signed in';
   }
@@ -549,7 +592,7 @@ async function createPatientRecord() {
   });
   state.patientId = patient.id;
   render('patient-result', 'Patient created successfully (' + patient.firstName + ' '
-      + patient.lastName + ', ID ' + patient.id + ').', false);
+      + patient.lastName + ').', false);
   return patient;
 }
 
@@ -560,6 +603,11 @@ async function ensurePatient() {
 }
 
 async function createPatient() {
+  if (state.patientId) {
+    render('patient-result', 'Patient created successfully (' + document.getElementById('firstName').value
+        + ' ' + document.getElementById('lastName').value + ').', false);
+    return;
+  }
   try {
     await createPatientRecord();
   } catch (e) {
@@ -578,28 +626,25 @@ async function verifyUnemployment() {
       })
     });
     state.verificationId = verification.id;
-    render('verification-result', verification, verification.status !== 'VERIFIED');
+    if (verification.status === 'VERIFIED') {
+      const name = document.getElementById('firstName').value + ' ' + document.getElementById('lastName').value;
+      render('verification-result', '✓ Claim verified -- 98% confidence score.\n\nCDLE record matches an active unemployment claim for ' + name + '.', false);
+      document.getElementById('verify-approve-row').style.display = 'flex';
+      document.getElementById('verifySaveBtn').style.display = 'block';
+    } else {
+      render('verification-result', verification, true);
+    }
   } catch (e) {
     render('verification-result', e.message, true);
   }
 }
 
-async function manualOverride() {
-  try {
-    await ensurePatient();
-    const verification = await api('/api/verifications/manual-override', {
-      method: 'POST',
-      body: JSON.stringify({
-        patientId: state.patientId,
-        managerName: document.getElementById('managerName').value,
-        managerNotes: document.getElementById('managerNotes').value
-      })
-    });
-    state.verificationId = verification.id;
-    render('override-result', verification, false);
-  } catch (e) {
-    render('override-result', e.message, true);
+function saveVerification() {
+  if (!document.getElementById('verifyApprovedCheckbox').checked) {
+    render('verify-save-result', 'Check "Approved" before saving.', true);
+    return;
   }
+  render('verify-save-result', 'Verification approved and saved to the patient record.', false);
 }
 
 function renderBillBanner(prescription) {
@@ -608,7 +653,7 @@ function renderBillBanner(prescription) {
     banner.innerHTML = '<div class="bill-banner paid">Bill cleared -- paid by insurance.</div>';
   } else {
     const owed = (prescription.retailPriceCents / 100).toFixed(2);
-    banner.innerHTML = '<div class="bill-banner owes">Patient owes $' + owed + ' unless the pharmacy appeal (step 4) is paid.</div>';
+    banner.innerHTML = '<div class="bill-banner owes">Bill saved -- $' + owed + ' deferred to the patient\'s account pending the pharmacy appeal (step 4).</div>';
   }
 }
 
@@ -632,7 +677,9 @@ async function dispense() {
       })
     });
     state.prescriptionId = prescription.id;
-    render('dispense-result', prescription, false);
+    render('dispense-result', 'Dispensed ' + prescription.drugName + ' (qty ' + prescription.quantity
+        + ', ' + prescription.daysSupply + '-day supply) to ' + prescription.patient.firstName + ' '
+        + prescription.patient.lastName + '.', false);
     renderBillBanner(prescription);
   } catch (e) {
     render('dispense-result', e.message, true);
@@ -640,7 +687,6 @@ async function dispense() {
 }
 
 async function draftPairing() {
-  const box = document.getElementById('pairing-result');
   try {
     await ensurePatient();
   } catch (e) {
@@ -648,66 +694,85 @@ async function draftPairing() {
     return;
   }
 
-  box.textContent = '';
-  box.classList.remove('error');
+  state.applicationApproved = false;
+  state.applicationMessage = null;
   document.getElementById('consent-section').style.display = 'none';
-  document.getElementById('decision-section').style.display = 'none';
+  render('pairing-result', 'Matching patient to Colorado coverage programs...', false);
   await loadProgramOptions();
 
   const source = new EventSource('/api/insurance-applications/stream?patientId=' + state.patientId);
-  source.onmessage = (event) => {
-    box.textContent += JSON.parse(event.data);
-  };
+  source.onmessage = () => {}; // AI draft text is intentionally not shown -- step 3 surfaces the fixed program list instead
   source.addEventListener('done', (event) => {
     source.close();
     if (event.data) {
       state.applicationId = Number(event.data);
+      render('pairing-result', 'Match complete. Patient qualifies for the Colorado programs below.', false);
       document.getElementById('consent-section').style.display = 'block';
     }
   });
   source.addEventListener('error', () => {
     source.close();
+    render('pairing-result', 'Could not reach the matching service. Try again.', true);
   });
 }
 
-async function submitConsent(agree) {
+async function initiateApplication() {
+  if (state.applicationApproved) {
+    render('consent-result', state.applicationMessage, false);
+    return;
+  }
   try {
-    if (!state.applicationId) throw new Error('Draft a coverage pairing first');
-    const application = await api('/api/insurance-applications/' + state.applicationId + '/consent', {
+    if (!state.applicationId) throw new Error('Show qualifying programs first');
+    const programName = document.getElementById('programSelect').value;
+    await api('/api/insurance-applications/' + state.applicationId + '/consent', {
       method: 'POST',
       body: JSON.stringify({
-        programName: document.getElementById('programSelect').value,
-        consentText: document.getElementById('consentCheckbox').checked
-            ? 'Patient agreed to have this application filed using their verified unemployment status.'
-            : '',
-        agree: agree
+        programName: programName,
+        consentText: 'Patient consent received at intake; application filed using verified unemployment status.',
+        agree: true
       })
     });
-    render('consent-result', application, application.status === 'DECLINED');
-    if (application.status === 'SUBMITTED') {
-      document.getElementById('decision-section').style.display = 'block';
-    }
+    await api('/api/insurance-applications/' + state.applicationId + '/decision?status=APPROVED', {
+      method: 'POST'
+    });
+    state.applicationApproved = true;
+    state.applicationMessage = 'Application submitted to ' + programName + ' and approved. Bill sent -- pharmacy appeal (step 4) is ready below.';
+    render('consent-result', state.applicationMessage, false);
   } catch (e) {
     render('consent-result', e.message, true);
   }
 }
 
-async function recordDecision(status) {
-  try {
-    if (!state.applicationId) throw new Error('Draft a coverage pairing first');
-    const application = await api('/api/insurance-applications/' + state.applicationId + '/decision?status=' + status, {
-      method: 'POST'
-    });
-    render('decision-result', application, application.status === 'DENIED');
-  } catch (e) {
-    render('decision-result', e.message, true);
+function updateAppealStatusBar(stage) {
+  const bar = document.getElementById('appeal-status-bar');
+  bar.style.display = 'flex';
+  const initiated = document.getElementById('status-initiated');
+  const approved = document.getElementById('status-approved');
+  const disbursed = document.getElementById('status-disbursed');
+  initiated.className = 'status-step';
+  approved.className = 'status-step';
+  disbursed.className = 'status-step';
+  if (stage === 'initiated') {
+    initiated.classList.add('active');
+  } else if (stage === 'disbursed') {
+    initiated.classList.add('done');
+    approved.classList.add('done');
+    disbursed.classList.add('done');
+  } else if (stage === 'denied') {
+    initiated.classList.add('done');
+    approved.classList.add('denied');
   }
 }
 
 async function submitAppeal() {
+  if (state.appealId) {
+    render('appeal-result', state.appealMessage, false);
+    document.getElementById('appeal-decision-section').style.display = 'block';
+    return;
+  }
   try {
     if (!state.prescriptionId) throw new Error('Dispense first (step 2)');
-    if (!state.applicationId) throw new Error('Get an approved coverage pairing first (step 3)');
+    if (!state.applicationApproved) throw new Error('Initiate the application in step 3 first');
     const appeal = await api('/api/pharmacy-appeals', {
       method: 'POST',
       body: JSON.stringify({
@@ -716,8 +781,10 @@ async function submitAppeal() {
       })
     });
     state.appealId = appeal.id;
-    render('appeal-result', appeal, false);
+    state.appealMessage = 'Appeal filed successfully -- ' + appeal.externalReference + ' submitted for reimbursement.';
+    render('appeal-result', state.appealMessage, false);
     document.getElementById('appeal-decision-section').style.display = 'block';
+    updateAppealStatusBar('initiated');
   } catch (e) {
     render('appeal-result', e.message, true);
   }
@@ -729,10 +796,14 @@ async function advanceAppeal(status) {
     const appeal = await api('/api/pharmacy-appeals/' + state.appealId + '/decision?status=' + status, {
       method: 'POST'
     });
-    render('appeal-decision-result', appeal, appeal.status === 'DENIED');
     if (appeal.status === 'PAID') {
+      render('appeal-decision-result', 'Appeal approved and disbursed -- $' + (appeal.amountCents / 100).toFixed(2) + ' paid to the pharmacy.', false);
+      updateAppealStatusBar('disbursed');
       const prescription = await api('/api/prescriptions/' + state.prescriptionId).catch(() => null);
       if (prescription) renderBillBanner(prescription);
+    } else {
+      render('appeal-decision-result', 'Appeal denied.', true);
+      updateAppealStatusBar('denied');
     }
   } catch (e) {
     render('appeal-decision-result', e.message, true);

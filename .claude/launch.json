@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "rhea",
+      "runtimeExecutable": "mvn",
+      "runtimeArgs": [
+        "spring-boot:run",
+        "-Dspring-boot.run.arguments=--rhea.require-auth=false"
+      ],
+      "port": 8080
+    }
+  ]
+}

@@ -41,12 +41,23 @@ DATASOURCE_PASSWORD=...
 
 and add the `org.postgresql:postgresql` runtime dependency to `pom.xml`.
 
-## Auth (MVP)
+## Auth
 
-Bcrypt-backed local login for pharmacy staff (`PHARMACY_USER` / `PHARMACY_PASSWORD` env
-vars, defaults to `pharmacist` / `changeme-local-dev` for local dev only -- **override both
-before any shared deploy**). Google OAuth2 (per the Callisto brand system) is a follow-up
-once client credentials are provisioned.
+DB-backed login (`users` table, `id` / `user_name` / `name` / `password_hash` / `provider` /
+`active` / `date_created` -- see `V5__users_table.sql`), with two ways in:
+
+- **Standalone account creation** -- `/login` has a "Create Account" tab that posts to
+  `/api/auth/register` (name, email, password >= 8 chars), bcrypt-hashed via Spring
+  Security's `DaoAuthenticationProvider`.
+- **Google OAuth2** -- "Continue with Google" at `/oauth2/authorization/google`. First
+  sign-in auto-creates a `users` row (`provider='google'`, no password hash). Requires
+  `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` env vars from a project at
+  https://console.cloud.google.com/apis/credentials -- unset locally, the app still boots
+  (placeholder client id/secret), the Google button just won't complete a real login until
+  real credentials are provisioned.
+
+Deactivating a user (`active=false`) blocks that account from signing in without deleting
+the row.
 
 `/api/**` is authenticated by default (`REQUIRE_AUTH=true`). Set `REQUIRE_AUTH=false` to
 open the API up without a login -- this is used by the local demo launch config
@@ -65,7 +76,7 @@ real CDLE integration by adding another `UnemploymentVerificationService` implem
 | Variable | Purpose | Required |
 |---|---|---|
 | `PORT` | HTTP port (Railway injects this) | No, defaults to 8080 |
-| `PHARMACY_USER` / `PHARMACY_PASSWORD` | Pharmacy staff login | Recommended to override |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth2 login | Recommended for a shared deploy |
 | `GROQ_API_KEY` | Powers the AI insurance-match agent | Yes, for AI matching to work |
 | `TAVILY_API_KEY` | Live search for the AI agent's tool calls | Yes, for live search to work |
 | `DATABASE_URL` / `DATASOURCE_*` | Only if moving off H2 | No |
