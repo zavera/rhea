@@ -1,8 +1,7 @@
 [build]
-builder = "nixpacks"
+builder = "dockerfile"
 
 [deploy]
-startCommand = "java -jar target/*.jar"
 healthcheckPath = "/actuator/health"
 healthcheckTimeout = 30
 restartPolicyType = "on_failure"
