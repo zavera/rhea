@@ -10,7 +10,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 
 @Entity
-@Table(name = "users")
+@Table(name = "rhea_users")
 public class AppUser {
 
     @Id

@@ -18,7 +18,7 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 
 /**
- * User login: standalone email/password sign-up plus Google OAuth2, backed by the {@code users}
+ * User login: standalone email/password sign-up plus Google OAuth2, backed by the {@code rhea_users}
  * table ({@link UserService} / {@link org.callistotech.rhea.repository.UserRepository}).
  *
  * The login mechanism stays wired up regardless of {@code REQUIRE_AUTH} -- /login still works --

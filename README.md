@@ -30,27 +30,32 @@ deploys -- no external database to provision. Flyway migrations live in
 `src/main/resources/db/migration/`. Tests use H2 in-memory.
 
 To move to a shared/production Postgres instance, override these four properties via env
-vars (Railway's Postgres plugin injects a compatible `DATABASE_URL` automatically):
+vars. The `org.postgresql:postgresql` runtime dependency is already in `pom.xml`.
+
+Note: Railway's Postgres plugin auto-injects its own `DATABASE_URL`, but in `postgresql://...`
+form -- Spring needs a `jdbc:postgresql://...` URL, so don't rely on that variable directly.
+Instead, on the **rhea service's** Variables tab, set these using Railway's `${{ServiceName.VAR}}`
+reference syntax to pull from the Postgres plugin (swap `Postgres` for your plugin's actual
+service name, visible on its own Variables tab):
 
 ```
-DATABASE_URL=jdbc:postgresql://...
+DATABASE_URL=jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}
 DATASOURCE_DRIVER=org.postgresql.Driver
-DATASOURCE_USERNAME=...
-DATASOURCE_PASSWORD=...
+DATASOURCE_USERNAME=${{Postgres.PGUSER}}
+DATASOURCE_PASSWORD=${{Postgres.PGPASSWORD}}
 ```
-
-and add the `org.postgresql:postgresql` runtime dependency to `pom.xml`.
 
 ## Auth
 
-DB-backed login (`users` table, `id` / `user_name` / `name` / `password_hash` / `provider` /
-`active` / `date_created` -- see `V5__users_table.sql`), with two ways in:
+DB-backed login (`rhea_users` table -- named to avoid colliding with any other app's `users`
+table on a shared Postgres instance -- `id` / `user_name` / `name` / `password_hash` /
+`provider` / `active` / `date_created`, see `V5__users_table.sql`), with two ways in:
 
 - **Standalone account creation** -- `/login` has a "Create Account" tab that posts to
   `/api/auth/register` (name, email, password >= 8 chars), bcrypt-hashed via Spring
   Security's `DaoAuthenticationProvider`.
 - **Google OAuth2** -- "Continue with Google" at `/oauth2/authorization/google`. First
-  sign-in auto-creates a `users` row (`provider='google'`, no password hash). Requires
+  sign-in auto-creates a `rhea_users` row (`provider='google'`, no password hash). Requires
   `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` env vars from a project at
   https://console.cloud.google.com/apis/credentials -- unset locally, the app still boots
   (placeholder client id/secret), the Google button just won't complete a real login until
