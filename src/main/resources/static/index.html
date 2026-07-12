@@ -4,21 +4,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/png" href="/callisto_high.png">
-<title>Rhea -- Coverage Pairing for Unemployed Coloradans</title>
-<meta name="description" content="Rhea verifies unemployment status with the State of Colorado, pairs the patient with a qualifying public program with their consent, and lets the pharmacy appeal the original bill once that application is approved.">
+<title>Rhea -- Coverage Pairing for Unemployed Patients, Nationwide</title>
+<meta name="description" content="Rhea verifies unemployment status, pairs the patient with a qualifying public coverage program in their state with their consent, and lets the pharmacy appeal the original bill once that application is approved.">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://rhea.callistotech.org/">
 <meta name="author" content="Rhea">
 
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://rhea.callistotech.org/">
-<meta property="og:title" content="Rhea -- Coverage Pairing for Unemployed Coloradans">
-<meta property="og:description" content="Verified unemployment status. AI-paired coverage, with patient consent. Pharmacy appeals the bill once approved.">
+<meta property="og:title" content="Rhea -- Coverage Pairing for Unemployed Patients, Nationwide">
+<meta property="og:description" content="Verified unemployment status. AI-paired state coverage, with patient consent. Pharmacy appeals the bill once approved.">
 <meta property="og:site_name" content="Rhea">
 
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Rhea -- Coverage Pairing for Unemployed Coloradans">
-<meta name="twitter:description" content="Verified unemployment status. AI-paired coverage, with patient consent. Pharmacy appeals the bill once approved.">
+<meta name="twitter:title" content="Rhea -- Coverage Pairing for Unemployed Patients, Nationwide">
+<meta name="twitter:description" content="Verified unemployment status. AI-paired state coverage, with patient consent. Pharmacy appeals the bill once approved.">
 
 <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400&display=swap" rel="stylesheet">
 
@@ -363,7 +363,7 @@ footer {
     <img src="/callisto_high.png" alt="Callisto" class="nav-logo">
     <span class="nav-brand-name">RHEA</span>
   </a>
-  <span class="nav-tagline">Coverage pairing for unemployed Coloradans</span>
+  <span class="nav-tagline">Coverage pairing for unemployed patients, nationwide</span>
   <div class="nav-links">
     <a class="nav-link" href="#verify-block">Verify</a>
     <a class="nav-link" href="#dispense-block">Dispense</a>
@@ -382,18 +382,19 @@ footer {
     <div class="field"><label for="firstName">First name</label><input id="firstName" value="Jordan"></div>
     <div class="field"><label for="lastName">Last name</label><input id="lastName" value="Reyes"></div>
     <div class="field"><label for="dob">Date of birth</label><input id="dob" type="date" value="1990-05-14"></div>
+    <div class="field"><label for="stateSelect">State</label><select id="stateSelect"></select></div>
     <div class="field"><label for="caseNumber">State case number</label><input id="caseNumber" value="CO-2026-000123"></div>
     <button class="btn-dark" onclick="createPatient()">Create patient</button>
     <div class="result-box" id="patient-result"></div>
 
-    <h3 class="sub-heading">CDLE verification</h3>
-    <div class="field"><label for="claimNumber">CDLE claim number <span class="ai-highlight">AI verification of claim</span></label><input id="claimNumber" value="CO-2026-000123" readonly></div>
+    <h3 class="sub-heading">Unemployment verification</h3>
+    <div class="field"><label for="claimNumber">State unemployment claim number <span class="ai-highlight">AI verification of claim</span></label><input id="claimNumber" value="CO-2026-000123" readonly></div>
 
     <div class="field">
-      <label for="cdleDoc">CDLE confirmation document</label>
+      <label for="cdleDoc">Unemployment confirmation document</label>
       <div style="display:flex; align-items:center; gap:10px; border:1.5px dashed var(--border); border-radius:8px; padding:12px; background:var(--bg);">
         <div style="flex:1">
-          <div style="font-weight:700; font-size:13px;">CDLE-Confirmation-CO-2026-000123.pdf</div>
+          <div style="font-weight:700; font-size:13px;" id="cdleDocName">Unemployment-Confirmation-CO-2026-000123.pdf</div>
           <div style="font-size:11px; color:var(--muted); margin-top:2px;">On file -- matched against state case number</div>
         </div>
       </div>
@@ -403,7 +404,7 @@ footer {
       <input type="file" id="cdleUpload" disabled>
     </div>
 
-    <button class="btn-dark" onclick="verifyUnemployment()">Verify with CDLE</button>
+    <button class="btn-dark" onclick="verifyUnemployment()">Verify unemployment status</button>
     <div class="result-box" id="verification-result"></div>
 
     <div class="checkbox-field" id="verify-approve-row" style="display:none">
@@ -418,9 +419,8 @@ footer {
     <span class="badge">Step 2</span>
     <h2>Dispense</h2>
     <p style="color:var(--muted); margin-top:0">Full retail price is deferred to the patient's account --
-      nothing is collected today. The bill is dispensed to Colorado's unemployment-linked coverage
-      programs (Health First Colorado/Medicaid, Colorado Indigent Care Program, Connect for Health
-      Colorado Special Enrollment, OmniSalud) once a qualifying pairing is confirmed in step 3.</p>
+      nothing is collected today. The bill is dispensed to the patient's state-specific
+      unemployment-linked coverage program once a qualifying pairing is confirmed in step 3.</p>
     <div class="field"><label for="drugName">Drug</label><input id="drugName" value="Metformin 500mg"></div>
     <div class="field"><label for="ndcCode">NDC code</label><input id="ndcCode" value="00093-1048-01"></div>
     <div class="field"><label for="quantity">Quantity</label><input id="quantity" type="number" value="60"></div>
@@ -436,7 +436,7 @@ footer {
     <span class="badge">Step 3</span>
     <span class="ai-highlight">AI-Powered Matching</span>
     <h2>Coverage pairing</h2>
-    <p style="color:var(--muted); margin-top:0">Rhea's AI agent matches the patient's verified
+    <p style="color:var(--muted); margin-top:0" id="pairing-desc">Rhea's AI agent matches the patient's verified
       unemployment status against Colorado's public coverage programs in real time.</p>
     <button class="btn-dark" onclick="draftPairing()">Show qualifying programs</button>
     <div class="result-box" id="pairing-result"></div>
@@ -496,6 +496,82 @@ footer {
 </div>
 
 <script>
+// Hardcoded per-state coverage programs for this demo -- reveals the value of state-aware
+// pairing without a live, dynamic eligibility integration (a follow-up). Each state lists its
+// Medicaid program, its health insurance marketplace, and a hospital charity-care equivalent.
+const STATE_PROGRAMS = {
+  AL: { name: 'Alabama', programs: ['Alabama Medicaid', 'healthcare.gov Marketplace', 'Alabama Hospital Charity Care Program'] },
+  AK: { name: 'Alaska', programs: ['Alaska Medicaid', 'healthcare.gov Marketplace', 'Alaska Hospital Charity Care Program'] },
+  AZ: { name: 'Arizona', programs: ['AHCCCS (Arizona Medicaid)', 'healthcare.gov Marketplace', 'Arizona Hospital Charity Care Program'] },
+  AR: { name: 'Arkansas', programs: ['ARHOME (Arkansas Medicaid)', 'healthcare.gov Marketplace', 'Arkansas Hospital Charity Care Program'] },
+  CA: { name: 'California', programs: ['Medi-Cal', 'Covered California', 'California Hospital Charity Care Program'] },
+  CO: { name: 'Colorado', programs: ['Health First Colorado (Medicaid)', 'Connect for Health Colorado', 'Colorado Indigent Care Program (CICP)'] },
+  CT: { name: 'Connecticut', programs: ['HUSKY Health (Medicaid)', 'Access Health CT', 'Connecticut Hospital Charity Care Program'] },
+  DE: { name: 'Delaware', programs: ['Delaware Medicaid', 'healthcare.gov Marketplace', 'Delaware Hospital Charity Care Program'] },
+  DC: { name: 'District of Columbia', programs: ['DC Medicaid', 'DC Health Link', 'DC Hospital Charity Care Program'] },
+  FL: { name: 'Florida', programs: ['Florida Medicaid', 'healthcare.gov Marketplace', 'Florida Hospital Charity Care Program'] },
+  GA: { name: 'Georgia', programs: ['Georgia Medicaid', 'Georgia Access', 'Georgia Hospital Charity Care Program'] },
+  HI: { name: 'Hawaii', programs: ['Med-QUEST (Medicaid)', 'healthcare.gov Marketplace', 'Hawaii Hospital Charity Care Program'] },
+  ID: { name: 'Idaho', programs: ['Idaho Medicaid', 'Your Health Idaho', 'Idaho Hospital Charity Care Program'] },
+  IL: { name: 'Illinois', programs: ['Illinois Medicaid (HFS Medical Programs)', 'healthcare.gov Marketplace', 'Illinois Hospital Charity Care Program'] },
+  IN: { name: 'Indiana', programs: ['Healthy Indiana Plan (HIP)', 'healthcare.gov Marketplace', 'Indiana Hospital Charity Care Program'] },
+  IA: { name: 'Iowa', programs: ['Iowa Medicaid', 'healthcare.gov Marketplace', 'Iowa Hospital Charity Care Program'] },
+  KS: { name: 'Kansas', programs: ['KanCare (Medicaid)', 'healthcare.gov Marketplace', 'Kansas Hospital Charity Care Program'] },
+  KY: { name: 'Kentucky', programs: ['Kentucky Medicaid', 'kynect', 'Kentucky Hospital Charity Care Program'] },
+  LA: { name: 'Louisiana', programs: ['Healthy Louisiana (Medicaid)', 'healthcare.gov Marketplace', 'Louisiana Hospital Charity Care Program'] },
+  ME: { name: 'Maine', programs: ['MaineCare (Medicaid)', 'CoverME.gov', 'Maine Hospital Charity Care Program'] },
+  MD: { name: 'Maryland', programs: ['Maryland Medicaid', 'Maryland Health Connection', 'Maryland Hospital Charity Care Program'] },
+  MA: { name: 'Massachusetts', programs: ['MassHealth (Medicaid)', 'Massachusetts Health Connector', 'Massachusetts Health Safety Net'] },
+  MI: { name: 'Michigan', programs: ['Healthy Michigan Plan (Medicaid)', 'healthcare.gov Marketplace', 'Michigan Hospital Charity Care Program'] },
+  MN: { name: 'Minnesota', programs: ['Minnesota Medical Assistance (Medicaid)', 'MNsure', 'Minnesota Hospital Charity Care Program'] },
+  MS: { name: 'Mississippi', programs: ['Mississippi Medicaid', 'healthcare.gov Marketplace', 'Mississippi Hospital Charity Care Program'] },
+  MO: { name: 'Missouri', programs: ['MO HealthNet (Medicaid)', 'healthcare.gov Marketplace', 'Missouri Hospital Charity Care Program'] },
+  MT: { name: 'Montana', programs: ['Montana Medicaid', 'healthcare.gov Marketplace', 'Montana Hospital Charity Care Program'] },
+  NE: { name: 'Nebraska', programs: ['Heritage Health (Medicaid)', 'healthcare.gov Marketplace', 'Nebraska Hospital Charity Care Program'] },
+  NV: { name: 'Nevada', programs: ['Nevada Medicaid', 'Nevada Health Link', 'Nevada Hospital Charity Care Program'] },
+  NH: { name: 'New Hampshire', programs: ['Granite Advantage (Medicaid)', 'healthcare.gov Marketplace', 'New Hampshire Hospital Charity Care Program'] },
+  NJ: { name: 'New Jersey', programs: ['NJ FamilyCare (Medicaid)', 'Get Covered New Jersey', 'New Jersey Hospital Charity Care Program'] },
+  NM: { name: 'New Mexico', programs: ['Centennial Care (Medicaid)', 'beWellnm', 'New Mexico Hospital Charity Care Program'] },
+  NY: { name: 'New York', programs: ['New York Medicaid', 'NY State of Health', 'New York Hospital Charity Care Program'] },
+  NC: { name: 'North Carolina', programs: ['NC Medicaid', 'healthcare.gov Marketplace', 'North Carolina Hospital Charity Care Program'] },
+  ND: { name: 'North Dakota', programs: ['North Dakota Medicaid', 'healthcare.gov Marketplace', 'North Dakota Hospital Charity Care Program'] },
+  OH: { name: 'Ohio', programs: ['Ohio Medicaid', 'healthcare.gov Marketplace', 'Ohio Hospital Charity Care Program'] },
+  OK: { name: 'Oklahoma', programs: ['SoonerCare (Medicaid)', 'healthcare.gov Marketplace', 'Oklahoma Hospital Charity Care Program'] },
+  OR: { name: 'Oregon', programs: ['Oregon Health Plan (OHP)', 'healthcare.gov Marketplace', 'Oregon Hospital Charity Care Program'] },
+  PA: { name: 'Pennsylvania', programs: ['Pennsylvania Medical Assistance', 'Pennie', 'Pennsylvania Hospital Charity Care Program'] },
+  RI: { name: 'Rhode Island', programs: ['Rhode Island Medicaid', 'HealthSource RI', 'Rhode Island Hospital Charity Care Program'] },
+  SC: { name: 'South Carolina', programs: ['Healthy Connections (Medicaid)', 'healthcare.gov Marketplace', 'South Carolina Hospital Charity Care Program'] },
+  SD: { name: 'South Dakota', programs: ['South Dakota Medicaid', 'healthcare.gov Marketplace', 'South Dakota Hospital Charity Care Program'] },
+  TN: { name: 'Tennessee', programs: ['TennCare (Medicaid)', 'healthcare.gov Marketplace', 'Tennessee Hospital Charity Care Program'] },
+  TX: { name: 'Texas', programs: ['Texas Medicaid (STAR)', 'healthcare.gov Marketplace', 'County Indigent Health Care Program'] },
+  UT: { name: 'Utah', programs: ['Utah Medicaid', 'healthcare.gov Marketplace', 'Utah Hospital Charity Care Program'] },
+  VT: { name: 'Vermont', programs: ['Green Mountain Care (Medicaid)', 'Vermont Health Connect', 'Vermont Hospital Charity Care Program'] },
+  VA: { name: 'Virginia', programs: ['Cardinal Care (Medicaid)', "Virginia's Insurance Marketplace", 'Virginia Hospital Charity Care Program'] },
+  WA: { name: 'Washington', programs: ['Apple Health (Medicaid)', 'Washington Healthplanfinder', 'Washington Hospital Charity Care Program'] },
+  WV: { name: 'West Virginia', programs: ['Mountain Health Trust (Medicaid)', 'healthcare.gov Marketplace', 'West Virginia Hospital Charity Care Program'] },
+  WI: { name: 'Wisconsin', programs: ['BadgerCare Plus (Medicaid)', 'healthcare.gov Marketplace', 'Wisconsin Hospital Charity Care Program'] },
+  WY: { name: 'Wyoming', programs: ['Wyoming Medicaid', 'healthcare.gov Marketplace', 'Wyoming Hospital Charity Care Program'] }
+};
+
+function populateStateSelect() {
+  const select = document.getElementById('stateSelect');
+  const codes = Object.keys(STATE_PROGRAMS).sort((a, b) => STATE_PROGRAMS[a].name.localeCompare(STATE_PROGRAMS[b].name));
+  select.innerHTML = codes.map(code =>
+    '<option value="' + code + '"' + (code === 'CO' ? ' selected' : '') + '>' + STATE_PROGRAMS[code].name + '</option>'
+  ).join('');
+}
+
+function onStateChange() {
+  const code = document.getElementById('stateSelect').value;
+  const suffix = document.getElementById('caseNumber').value.replace(/^[A-Z]{2}-/, '');
+  const newCaseNumber = code + '-' + suffix;
+  document.getElementById('caseNumber').value = newCaseNumber;
+  document.getElementById('claimNumber').value = newCaseNumber;
+  document.getElementById('cdleDocName').textContent = 'Unemployment-Confirmation-' + newCaseNumber + '.pdf';
+  document.getElementById('pairing-desc').textContent = "Rhea's AI agent matches the patient's verified "
+      + 'unemployment status against ' + STATE_PROGRAMS[code].name + "'s public coverage programs in real time.";
+}
+
 let state = {
   patientId: null,
   verificationId: null,
@@ -570,14 +646,11 @@ async function ensurePharmacy() {
   return state.pharmacyId;
 }
 
-async function loadProgramOptions() {
+function loadProgramOptions() {
   const select = document.getElementById('programSelect');
-  try {
-    const programs = await api('/api/insurance-programs');
-    select.innerHTML = programs.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
-  } catch (e) {
-    select.innerHTML = '<option value="Health First Colorado (Medicaid)">Health First Colorado (Medicaid)</option>';
-  }
+  const code = document.getElementById('stateSelect').value;
+  const programs = STATE_PROGRAMS[code].programs;
+  select.innerHTML = programs.map(p => `<option value="${p}">${p}</option>`).join('');
 }
 
 async function createPatientRecord() {
@@ -628,7 +701,8 @@ async function verifyUnemployment() {
     state.verificationId = verification.id;
     if (verification.status === 'VERIFIED') {
       const name = document.getElementById('firstName').value + ' ' + document.getElementById('lastName').value;
-      render('verification-result', '✓ Claim verified -- 98% confidence score.\n\nCDLE record matches an active unemployment claim for ' + name + '.', false);
+      const stateName = STATE_PROGRAMS[document.getElementById('stateSelect').value].name;
+      render('verification-result', '✓ Claim verified -- 98% confidence score.\n\nState unemployment record matches an active unemployment claim for ' + name + ' in ' + stateName + '.', false);
       document.getElementById('verify-approve-row').style.display = 'flex';
       document.getElementById('verifySaveBtn').style.display = 'block';
     } else {
@@ -694,11 +768,12 @@ async function draftPairing() {
     return;
   }
 
+  const stateName = STATE_PROGRAMS[document.getElementById('stateSelect').value].name;
   state.applicationApproved = false;
   state.applicationMessage = null;
   document.getElementById('consent-section').style.display = 'none';
-  render('pairing-result', 'Matching patient to Colorado coverage programs...', false);
-  await loadProgramOptions();
+  render('pairing-result', 'Matching patient to ' + stateName + ' coverage programs...', false);
+  loadProgramOptions();
 
   const source = new EventSource('/api/insurance-applications/stream?patientId=' + state.patientId);
   source.onmessage = () => {}; // AI draft text is intentionally not shown -- step 3 surfaces the fixed program list instead
@@ -706,7 +781,7 @@ async function draftPairing() {
     source.close();
     if (event.data) {
       state.applicationId = Number(event.data);
-      render('pairing-result', 'Match complete. Patient qualifies for the Colorado programs below.', false);
+      render('pairing-result', 'Match complete. Patient qualifies for the ' + stateName + ' programs below.', false);
       document.getElementById('consent-section').style.display = 'block';
     }
   });
@@ -814,6 +889,8 @@ document.getElementById('caseNumber').addEventListener('input', (e) => {
   document.getElementById('claimNumber').value = e.target.value;
 });
 
+document.getElementById('stateSelect').addEventListener('change', onStateChange);
+
 function showContactCard() {
   document.getElementById('contact-modal').classList.add('open');
 }
@@ -822,6 +899,7 @@ function hideContactCard() {
   document.getElementById('contact-modal').classList.remove('open');
 }
 
+populateStateSelect();
 checkAuthStatus();
 </script>
 </body>

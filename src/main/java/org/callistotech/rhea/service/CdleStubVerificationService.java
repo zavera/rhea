@@ -12,17 +12,19 @@ import java.time.format.DateTimeFormatter;
 import java.util.regex.Pattern;
 
 /**
- * Interim stand-in for a real Colorado Department of Labor and Employment
- * (CDLE) claimant lookup, which has no public API today. A claim number is
- * treated as verified when it matches CDLE's published format
- * (CO-YYYY-NNNNNN). Swap this bean out for a real CDLE integration by
- * providing another {@link UnemploymentVerificationService} implementation.
+ * Interim stand-in for a real state labor department claimant lookup -- no single
+ * nationwide API exists today, and each state's agency (CDLE in Colorado, EDD in
+ * California, TWC in Texas, etc.) has its own. A claim number is treated as verified
+ * when it matches the generic state-prefixed format used across this demo
+ * (XX-YYYY-NNNNNN, where XX is the two-letter state code). Swap this bean out for
+ * real per-state integrations by providing another {@link UnemploymentVerificationService}
+ * implementation.
  */
 @Service
 public class CdleStubVerificationService implements UnemploymentVerificationService {
 
-    private static final Pattern CLAIM_NUMBER_PATTERN = Pattern.compile("^CO-\\d{4}-\\d{6}$");
-    private static final String SOURCE = "CDLE-STUB";
+    private static final Pattern CLAIM_NUMBER_PATTERN = Pattern.compile("^[A-Z]{2}-\\d{4}-\\d{6}$");
+    private static final String SOURCE = "STATE-LABOR-DEPT-STUB";
     private static final String MANUAL_OVERRIDE_SOURCE = "MANUAL_MANAGER_OVERRIDE";
     private static final DateTimeFormatter DISPLAY_DATE = DateTimeFormatter.ofPattern("MMMM d, yyyy");
 
@@ -60,7 +62,7 @@ public class CdleStubVerificationService implements UnemploymentVerificationServ
         } else {
             verification.setStatus(VerificationStatus.NOT_FOUND);
             verification.setRawResponse("No active unemployment insurance claim found matching state "
-                    + "case number format CO-YYYY-NNNNNN. Verified at " + verification.getVerifiedAt() + ".");
+                    + "case number format XX-YYYY-NNNNNN. Verified at " + verification.getVerifiedAt() + ".");
         }
 
         return repository.save(verification);
