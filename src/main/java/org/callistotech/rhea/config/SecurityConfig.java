@@ -71,7 +71,7 @@ public class SecurityConfig {
                                 "/actuator/health", "/error")
                         .permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET,
-                                "/api/insurance-programs", "/api/config")
+                                "/api/insurance-programs", "/api/copay-assistance-programs", "/api/config")
                         .permitAll()
                         .anyRequest().authenticated())
                 .formLogin(form -> form

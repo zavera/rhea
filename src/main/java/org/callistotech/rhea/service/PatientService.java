@@ -2,6 +2,7 @@ package org.callistotech.rhea.service;
 
 import org.callistotech.rhea.dto.CreatePatientRequest;
 import org.callistotech.rhea.model.Patient;
+import org.callistotech.rhea.repository.CopayAssistanceApplicationRepository;
 import org.callistotech.rhea.repository.InsuranceApplicationRepository;
 import org.callistotech.rhea.repository.PatientRepository;
 import org.callistotech.rhea.repository.PharmacyAppealRepository;
@@ -22,6 +23,7 @@ public class PatientService {
     private final PrescriptionRepository prescriptionRepository;
     private final PharmacyAppealRepository appealRepository;
     private final InsuranceApplicationRepository applicationRepository;
+    private final CopayAssistanceApplicationRepository copayAssistanceApplicationRepository;
     private final boolean demoResetDuplicates;
 
     public PatientService(PatientRepository patientRepository,
@@ -29,12 +31,14 @@ public class PatientService {
                            PrescriptionRepository prescriptionRepository,
                            PharmacyAppealRepository appealRepository,
                            InsuranceApplicationRepository applicationRepository,
+                           CopayAssistanceApplicationRepository copayAssistanceApplicationRepository,
                            @Value("${rhea.demo-reset-duplicates:false}") boolean demoResetDuplicates) {
         this.patientRepository = patientRepository;
         this.verificationRepository = verificationRepository;
         this.prescriptionRepository = prescriptionRepository;
         this.appealRepository = appealRepository;
         this.applicationRepository = applicationRepository;
+        this.copayAssistanceApplicationRepository = copayAssistanceApplicationRepository;
         this.demoResetDuplicates = demoResetDuplicates;
     }
 
@@ -54,6 +58,7 @@ public class PatientService {
                 prescriptionRepository.deleteByPatient_Id(patientId);
                 verificationRepository.deleteByPatient_Id(patientId);
                 applicationRepository.deleteByPatient_Id(patientId);
+                copayAssistanceApplicationRepository.deleteByPatient_Id(patientId);
                 patientRepository.delete(existing.get());
                 patientRepository.flush();
             }

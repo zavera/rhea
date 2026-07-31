@@ -120,6 +120,8 @@ nav {
   text-decoration: none;
 }
 .nav-link:hover { color: #fff; background: rgba(255,255,255,0.08); }
+.nav-tab { border: none; background: none; cursor: pointer; font-family: inherit; }
+.nav-tab.active { color: #fff; background: rgba(255,255,255,0.14); }
 .nav-cta {
   font-size: 13px;
   font-weight: 700;
@@ -363,18 +365,17 @@ footer {
     <img src="/callisto_high.png" alt="Callisto" class="nav-logo">
     <span class="nav-brand-name">RHEA</span>
   </a>
-  <span class="nav-tagline">Coverage pairing for unemployed patients, nationwide</span>
+  <span class="nav-tagline">Rx Copay AI Assist</span>
   <div class="nav-links">
-    <a class="nav-link" href="#verify-block">Verify</a>
-    <a class="nav-link" href="#dispense-block">Dispense</a>
-    <a class="nav-link" href="#pairing-block">Pairing</a>
-    <a class="nav-link" href="#appeal-block">Appeal</a>
+    <button type="button" class="nav-link nav-tab active" id="tab-btn-unemployment" onclick="showTab('unemployment')">Unemployment Assist</button>
+    <button type="button" class="nav-link nav-tab" id="tab-btn-copay" onclick="showTab('copay')">Copay Assist</button>
   </div>
   <span class="nav-status" id="nav-status"></span>
   <a class="nav-cta" href="/login" id="nav-login">Sign in</a>
 </nav>
 
 <main id="main" class="page">
+<div id="unemployment-tab" class="tab-content">
   <div class="card" id="verify-block">
     <span class="badge">Step 1</span>
     <h2>Patient &amp; unemployment verification</h2>
@@ -475,6 +476,59 @@ footer {
       <div class="result-box" id="appeal-decision-result"></div>
     </div>
   </div>
+</div>
+
+<div id="copay-tab" class="tab-content" style="display:none">
+  <div class="card" id="copay-counter-block">
+    <span class="badge">Step 1</span>
+    <h2>Patient at the counter</h2>
+    <p style="color:var(--muted); margin-top:0">Commercially insured patient, different population from the
+      Unemployment Assist tab. Pharmacist enters what's on the counter -- the RA prescription and the
+      copay the register just quoted -- and Rhea flags whether it's a burden worth acting on.</p>
+
+    <div class="field"><label for="copayFirstName">First name</label><input id="copayFirstName" value="Morgan"></div>
+    <div class="field"><label for="copayLastName">Last name</label><input id="copayLastName" value="Alvarez"></div>
+    <div class="field"><label for="copayDrugSelect">Medication (rheumatoid arthritis)</label>
+      <select id="copayDrugSelect">
+        <option value="Humira (adalimumab)">Humira (adalimumab)</option>
+        <option value="Enbrel (etanercept)">Enbrel (etanercept)</option>
+        <option value="Xeljanz (tofacitinib)">Xeljanz (tofacitinib)</option>
+        <option value="Rinvoq (upadacitinib)">Rinvoq (upadacitinib)</option>
+      </select>
+    </div>
+    <div class="field"><label for="copayAmount">Copay quoted at register (USD)</label><input id="copayAmount" type="number" step="0.01" value="650.00"></div>
+    <div class="checkbox-field">
+      <input type="checkbox" id="hasFederalCoverage">
+      <label for="hasFederalCoverage">Patient has Medicare or Medicaid coverage -- manufacturer copay
+        cards are excluded automatically (federal anti-kickback law); only foundation assistance is shown.</label>
+    </div>
+
+    <button class="btn-dark" onclick="checkCopayBurden()">Check copay at counter</button>
+    <div class="result-box" id="copay-burden-result"></div>
+  </div>
+
+  <div class="card" id="copay-block">
+    <span class="badge">Step 2</span>
+    <span class="ai-highlight">AI-Powered Matching</span>
+    <h2>Copay assistance enrollment</h2>
+    <p style="color:var(--muted); margin-top:0">One click: the AI agent searches, drafts, and files the
+      enrollment against a matched manufacturer or foundation program -- same agent architecture as
+      Unemployment Assist's coverage pairing, applied to a different program universe.</p>
+    <button class="btn-dark" id="copayEnrollBtn" onclick="initiateCopayEnrollment()" disabled>Initiate copay assistance enrollment</button>
+    <div class="result-box" id="copay-result"></div>
+    <div class="result-box" id="copay-consent-result"></div>
+  </div>
+
+  <div class="card" id="copay-bill-block">
+    <span class="badge">Step 3</span>
+    <h2>Bill copay authority &amp; dispense</h2>
+    <p style="color:var(--muted); margin-top:0">Once enrolled, the reduced-cost bill goes to the copay
+      authority and the medication is dispensed the same visit -- no retail-price deferral, unlike
+      Unemployment Assist's appeal-after-dispense flow.</p>
+    <button class="btn-dark" id="copayBillBtn" onclick="sendBillAndDispense()" disabled>Send bill to copay authority &amp; dispense</button>
+    <div class="result-box" id="copay-bill-result"></div>
+  </div>
+</div>
 </main>
 
 <footer>
@@ -568,7 +622,7 @@ function onStateChange() {
   document.getElementById('caseNumber').value = newCaseNumber;
   document.getElementById('claimNumber').value = newCaseNumber;
   document.getElementById('cdleDocName').textContent = 'Unemployment-Confirmation-' + newCaseNumber + '.pdf';
-  document.getElementById('pairing-desc').textContent = "Rhea's AI agent matches the patient's verified "
+  document.getElementById('pairing-desc').textContent = "Rx AI Assist's AI agent matches the patient's verified "
       + 'unemployment status against ' + STATE_PROGRAMS[code].name + "'s public coverage programs in real time.";
 }
 
@@ -581,7 +635,9 @@ let state = {
   applicationApproved: false,
   applicationMessage: null,
   appealId: null,
-  appealMessage: null
+  appealMessage: null,
+  copayApplicationId: null,
+  copayPrograms: []
 };
 
 function render(elId, data, isError) {
@@ -882,6 +938,117 @@ async function advanceAppeal(status) {
     }
   } catch (e) {
     render('appeal-decision-result', e.message, true);
+  }
+}
+
+function showTab(name) {
+  document.getElementById('unemployment-tab').style.display = name === 'unemployment' ? 'block' : 'none';
+  document.getElementById('copay-tab').style.display = name === 'copay' ? 'block' : 'none';
+  document.getElementById('tab-btn-unemployment').classList.toggle('active', name === 'unemployment');
+  document.getElementById('tab-btn-copay').classList.toggle('active', name === 'copay');
+}
+
+// Below the paper's own OOP cost bracket ($125-499 carried notably higher abandonment odds) --
+// used here as the demo's "worth acting on" threshold, not a clinical or billing rule.
+const COPAY_BURDEN_THRESHOLD_CENTS = 12500;
+
+async function checkCopayBurden() {
+  const amountCents = Math.round(Number(document.getElementById('copayAmount').value) * 100);
+  const drug = document.getElementById('copayDrugSelect').value;
+  const name = document.getElementById('copayFirstName').value + ' ' + document.getElementById('copayLastName').value;
+  state.copayAmountCents = amountCents;
+  state.copayBurden = amountCents >= COPAY_BURDEN_THRESHOLD_CENTS;
+
+  if (state.copayBurden) {
+    render('copay-burden-result', '⚠ Copay burden detected for ' + name + ' -- $' + (amountCents / 100).toFixed(2)
+        + ' copay on ' + drug + ' exceeds the $' + (COPAY_BURDEN_THRESHOLD_CENTS / 100).toFixed(2)
+        + ' threshold. Copay assistance enrollment is recommended.', false);
+  } else {
+    render('copay-burden-result', 'Copay of $' + (amountCents / 100).toFixed(2) + ' on ' + drug
+        + ' for ' + name + ' is below the burden threshold -- enrollment is optional.', false);
+  }
+  document.getElementById('copayEnrollBtn').disabled = false;
+}
+
+async function ensureCopayPatient() {
+  if (state.copayPatientId) return state.copayPatientId;
+  const patient = await api('/api/patients', {
+    method: 'POST',
+    body: JSON.stringify({
+      firstName: document.getElementById('copayFirstName').value,
+      lastName: document.getElementById('copayLastName').value,
+      dateOfBirth: '1985-01-01',
+      stateCaseNumber: 'COPAY-DEMO-' + Date.now()
+    })
+  });
+  state.copayPatientId = patient.id;
+  return state.copayPatientId;
+}
+
+async function initiateCopayEnrollment() {
+  const name = document.getElementById('copayFirstName').value + ' ' + document.getElementById('copayLastName').value;
+  const drug = document.getElementById('copayDrugSelect').value;
+  const hasFederalCoverage = document.getElementById('hasFederalCoverage').checked;
+
+  try {
+    render('copay-result', 'Matching ' + name + ' to a copay assistance program for ' + drug + '...', false);
+    render('copay-consent-result', '', false);
+    const patientId = await ensureCopayPatient();
+
+    state.copayPrograms = await api('/api/copay-assistance-programs').catch(() => []);
+    if (hasFederalCoverage) {
+      state.copayPrograms = state.copayPrograms.filter(p => p.federalProgramSafe);
+    }
+
+    const applicationId = await new Promise((resolve, reject) => {
+      const source = new EventSource('/api/copay-assistance-applications/stream?patientId=' + patientId
+          + '&hasFederalCoverage=' + hasFederalCoverage);
+      let full = '';
+      source.onmessage = (event) => {
+        try { full += JSON.parse(event.data); } catch (e) { full += event.data; }
+        render('copay-result', full, false);
+      };
+      source.addEventListener('done', (event) => {
+        source.close();
+        event.data ? resolve(Number(event.data)) : reject(new Error('No application drafted'));
+      });
+      source.addEventListener('error', () => {
+        source.close();
+        reject(new Error('Could not reach the matching service'));
+      });
+    });
+    state.copayApplicationId = applicationId;
+
+    const bestMatch = state.copayPrograms[0] ? state.copayPrograms[0].name : 'HealthWell Foundation';
+    await api('/api/copay-assistance-applications/' + applicationId + '/consent', {
+      method: 'POST',
+      body: JSON.stringify({
+        programName: bestMatch,
+        consentText: 'Patient consent received at the counter; enrollment filed on their behalf for ' + drug + '.',
+        agree: true
+      })
+    });
+    state.copayEnrolledProgram = bestMatch;
+    render('copay-consent-result', '✓ Enrolled -- application submitted to ' + bestMatch + ' for ' + name + '.', false);
+    document.getElementById('copayBillBtn').disabled = false;
+  } catch (e) {
+    render('copay-result', e.message, true);
+  }
+}
+
+async function sendBillAndDispense() {
+  const name = document.getElementById('copayFirstName').value + ' ' + document.getElementById('copayLastName').value;
+  const drug = document.getElementById('copayDrugSelect').value;
+  try {
+    if (!state.copayApplicationId) throw new Error('Initiate copay assistance enrollment first');
+    const application = await api('/api/copay-assistance-applications/' + state.copayApplicationId
+        + '/decision?status=APPROVED', { method: 'POST' });
+    const originalCopay = (state.copayAmountCents / 100).toFixed(2);
+    render('copay-bill-result', 'Bill sent to ' + application.programName + ' -- approved same-visit.\n'
+        + 'Original copay: $' + originalCopay + ' -> reduced to $0.00 for the patient.\n'
+        + '✓ ' + drug + ' dispensed to ' + name + '.', false);
+  } catch (e) {
+    render('copay-bill-result', e.message, true);
   }
 }
 
