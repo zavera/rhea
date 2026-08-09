@@ -559,8 +559,19 @@ footer {
     <button class="btn-ghost" onclick="detectInsuranceCoverage()">Detect coverage type from card</button>
     <div class="result-box" id="copay-coverage-result"></div>
 
-    <button class="btn-dark" onclick="checkCopayBurden()">Check copay at counter</button>
+    <button class="btn-dark" style="margin-top:20px" onclick="checkCopayBurden()">Check copay at counter</button>
     <div class="result-box" id="copay-burden-result"></div>
+
+    <div class="field" style="margin-top:20px">
+      <label for="copaySignatureCanvas">Patient consent &amp; signature <span class="ai-highlight">Topaz pad placeholder</span></label>
+      <p style="color:var(--muted); font-size:12px; margin:0 0 8px">"I consent to have my information used to
+        enroll me in Taltz Together copay assistance." Sign below -- stands in for a real Topaz
+        signature-pad SDK, which needs its own hardware integration.</p>
+      <canvas id="copaySignatureCanvas" width="400" height="120"
+        style="width:100%; max-width:400px; height:120px; border:1.5px dashed var(--border); border-radius:8px; background:#fff; touch-action:none; cursor:crosshair;"></canvas>
+      <div style="margin-top:8px"><button class="btn-ghost" type="button" onclick="clearCopaySignature()">Clear signature</button></div>
+    </div>
+    <div class="result-box" id="copay-signature-result"></div>
   </div>
 
   <div class="card" id="copay-block">
@@ -580,6 +591,7 @@ footer {
       </div>
       <button class="btn-dark" onclick="approveAndSendCopayPayload()">Approve &amp; send to enrollment portal</button>
       <div class="result-box" id="copay-send-result"></div>
+      <div id="copay-issued-card"></div>
     </div>
   </div>
 
@@ -1019,13 +1031,8 @@ const COPAY_BURDEN_THRESHOLD_CENTS = 12500;
 // Demo stub -- classifies the uploaded card image by filename keyword rather than real vision
 // OCR, same "labeled stub, not live AI" pattern as CdleStubVerificationService on the backend.
 function detectInsuranceCoverage() {
-  const fileInput = document.getElementById('copayInsuranceCardUpload');
-  const file = fileInput.files[0];
-  if (!file) {
-    render('copay-coverage-result', 'Upload a photo of the insurance card first.', true);
-    return;
-  }
-  const looksLikeDiscountCard = /discount|goodrx|singlecare|coupon/i.test(file.name);
+  const file = document.getElementById('copayInsuranceCardUpload').files[0];
+  const looksLikeDiscountCard = file && /discount|goodrx|singlecare|coupon/i.test(file.name);
   state.copayHasCommercialRxCoverage = !looksLikeDiscountCard;
   if (looksLikeDiscountCard) {
     render('copay-coverage-result', '⚠ This looks like an Rx discount card, not commercial insurance -- '
@@ -1074,13 +1081,60 @@ function resetCopayDownstreamSteps() {
   document.getElementById('copay-approve-section').style.display = 'none';
   document.getElementById('copayPharmacistApprove').checked = false;
   document.getElementById('copay-form-preview').innerHTML = '';
+  document.getElementById('copay-issued-card').innerHTML = '';
   render('copay-send-result', '', false);
   state.copayApplicationId = null;
   state.copayEnrolledProgram = null;
+  state.copayCard = null;
+}
+
+// Canvas signature capture -- placeholder for a real Topaz signature-pad SDK integration,
+// which needs its own hardware/driver layer this demo doesn't have.
+let copaySignatureCtx = null;
+let copaySignatureDrawing = false;
+let copaySignatureHasStroke = false;
+
+function initCopaySignaturePad() {
+  const canvas = document.getElementById('copaySignatureCanvas');
+  copaySignatureCtx = canvas.getContext('2d');
+  copaySignatureCtx.lineWidth = 2;
+  copaySignatureCtx.lineCap = 'round';
+  copaySignatureCtx.strokeStyle = '#221f18';
+
+  const pos = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) * (canvas.width / rect.width),
+      y: (e.clientY - rect.top) * (canvas.height / rect.height)
+    };
+  };
+  canvas.addEventListener('pointerdown', (e) => {
+    copaySignatureDrawing = true;
+    const p = pos(e);
+    copaySignatureCtx.beginPath();
+    copaySignatureCtx.moveTo(p.x, p.y);
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!copaySignatureDrawing) return;
+    const p = pos(e);
+    copaySignatureCtx.lineTo(p.x, p.y);
+    copaySignatureCtx.stroke();
+    copaySignatureHasStroke = true;
+  });
+  ['pointerup', 'pointerleave'].forEach(evt =>
+      canvas.addEventListener(evt, () => { copaySignatureDrawing = false; }));
+}
+
+function clearCopaySignature() {
+  const canvas = document.getElementById('copaySignatureCanvas');
+  copaySignatureCtx.clearRect(0, 0, canvas.width, canvas.height);
+  copaySignatureHasStroke = false;
+  render('copay-signature-result', '', false);
 }
 
 async function draftCopayEnrollment() {
   try {
+    if (!copaySignatureHasStroke) throw new Error('Capture the patient\'s consent signature first.');
     resetCopayDownstreamSteps();
     const patientId = await ensureCopayPatient();
 
@@ -1217,6 +1271,40 @@ function renderCopayFormPreview() {
   document.getElementById('copay-approve-section').style.display = 'block';
 }
 
+// Stub BIN/PCN/GRP -- what a real hub API would hand back on approval. 999999 is the
+// industry-standard test BIN, not a real assigned one; the rest is randomly generated per run.
+function generateStubCardNumbers() {
+  const digits = (n) => Math.floor(Math.random() * Math.pow(10, n)).toString().padStart(n, '0');
+  return {
+    bin: '999999',
+    pcn: 'TALTZTGTHR',
+    grp: 'DEMO' + digits(4),
+    memberId: 'TT' + digits(8)
+  };
+}
+
+function buildIssuedCardVisual(card) {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'margin-top:12px;';
+  wrap.insertAdjacentHTML('beforeend', `
+    <svg width="240" height="139" viewBox="0 0 240 139" role="img" aria-label="Taltz Together card issued by the hub">
+      <rect x="1" y="1" width="238" height="137" rx="10" fill="#fff" stroke="var(--rhea)" stroke-width="1.5"></rect>
+      <rect x="1" y="1" width="238" height="34" rx="10" fill="var(--rhea)"></rect>
+      <rect x="1" y="25" width="238" height="10" fill="var(--rhea)"></rect>
+      <text x="14" y="22" font-size="12" font-weight="700" fill="#fff" font-family="ui-sans-serif, sans-serif">TALTZ TOGETHER</text>
+      <text x="14" y="54" font-size="8" letter-spacing="0.5" fill="var(--muted)" font-family="ui-sans-serif, sans-serif">MEMBER ID</text>
+      <text x="14" y="66" font-size="12" font-weight="600" fill="var(--ink)" font-family="ui-monospace, monospace">${card.memberId}</text>
+      <text x="14" y="86" font-size="8" letter-spacing="0.5" fill="var(--muted)" font-family="ui-sans-serif, sans-serif">RX BIN</text>
+      <text x="14" y="98" font-size="12" font-weight="600" fill="var(--ink)" font-family="ui-monospace, monospace">${card.bin}</text>
+      <text x="100" y="86" font-size="8" letter-spacing="0.5" fill="var(--muted)" font-family="ui-sans-serif, sans-serif">PCN</text>
+      <text x="100" y="98" font-size="12" font-weight="600" fill="var(--ink)" font-family="ui-monospace, monospace">${card.pcn}</text>
+      <text x="180" y="86" font-size="8" letter-spacing="0.5" fill="var(--muted)" font-family="ui-sans-serif, sans-serif">GRP</text>
+      <text x="180" y="98" font-size="12" font-weight="600" fill="var(--ink)" font-family="ui-monospace, monospace">${card.grp}</text>
+      <text x="120" y="130" font-size="8" font-weight="700" letter-spacing="1" fill="var(--rhea)" text-anchor="middle" font-family="ui-sans-serif, sans-serif">DEMO -- STUB CARD NUMBERS</text>
+    </svg>`);
+  return wrap;
+}
+
 async function approveAndSendCopayPayload() {
   const name = document.getElementById('copayFirstName').value + ' ' + document.getElementById('copayLastName').value;
   const drug = document.getElementById('copayDrugSelect').value;
@@ -1233,8 +1321,12 @@ async function approveAndSendCopayPayload() {
         agree: true
       })
     });
+    state.copayCard = generateStubCardNumbers();
     render('copay-send-result', '✓ Approved by pharmacist and sent to '
-        + state.copayEnrolledProgram + '\'s enrollment portal for ' + name + '.', false);
+        + state.copayEnrolledProgram + '\'s enrollment portal for ' + name + '. Card issued below.', false);
+    const cardContainer = document.getElementById('copay-issued-card');
+    cardContainer.innerHTML = '';
+    cardContainer.appendChild(buildIssuedCardVisual(state.copayCard));
     document.getElementById('copayBillBtn').disabled = false;
   } catch (e) {
     render('copay-send-result', e.message, true);
@@ -1249,7 +1341,9 @@ async function sendBillAndDispense() {
     const application = await api('/api/copay-assistance-applications/' + state.copayApplicationId
         + '/decision?status=APPROVED', { method: 'POST' });
     const originalCopay = (state.copayAmountCents / 100).toFixed(2);
-    render('copay-bill-result', 'Bill sent to ' + application.programName + ' -- approved same-visit.\n'
+    const card = state.copayCard;
+    render('copay-bill-result', 'Secondary claim submitted using BIN ' + card.bin + ' / PCN ' + card.pcn
+        + ' / GRP ' + card.grp + ' (member ' + card.memberId + ') -- approved same-visit.\n'
         + 'Original copay: $' + originalCopay + ' -> reduced to $0.00 for the patient.\n'
         + '✓ ' + drug + ' dispensed to ' + name + '.', false);
   } catch (e) {
@@ -1272,6 +1366,7 @@ function hideContactCard() {
 }
 
 renderCardPreview('copayCardPreview');
+initCopaySignaturePad();
 populateStateSelect();
 checkAuthStatus();
 </script>
