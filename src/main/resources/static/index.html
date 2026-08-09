@@ -543,12 +543,9 @@ footer {
 
     <div class="field"><label for="copayFirstName">First name</label><input id="copayFirstName" value="Morgan"></div>
     <div class="field"><label for="copayLastName">Last name</label><input id="copayLastName" value="Alvarez"></div>
-    <div class="field"><label for="copayDrugSelect">Medication (rheumatoid arthritis)</label>
+    <div class="field"><label for="copayDrugSelect">Medication</label>
       <select id="copayDrugSelect">
-        <option value="Humira (adalimumab)">Humira (adalimumab)</option>
-        <option value="Enbrel (etanercept)">Enbrel (etanercept)</option>
-        <option value="Xeljanz (tofacitinib)">Xeljanz (tofacitinib)</option>
-        <option value="Rinvoq (upadacitinib)">Rinvoq (upadacitinib)</option>
+        <option value="Taltz (ixekizumab)">Taltz (ixekizumab)</option>
       </select>
     </div>
     <div class="field"><label for="copayAmount">Copay quoted at register (USD)</label><input id="copayAmount" type="number" step="0.01" value="650.00"></div>
@@ -561,19 +558,12 @@ footer {
   <div class="card" id="copay-block">
     <span class="badge">Step 2</span>
     <span class="ai-highlight">AI-Powered Matching</span>
-    <h2>Find copay assistance programs</h2>
-    <p style="color:var(--muted); margin-top:0">The AI agent searches and drafts a match against real
-      manufacturer and foundation copay assistance programs. The pharmacist picks which one to enroll
-      in before anything is filed.</p>
-    <button class="btn-dark" id="copaySearchBtn" onclick="searchCopayPrograms()" disabled>Search copay assistance programs</button>
+    <h2>Enroll in Taltz Together</h2>
+    <p style="color:var(--muted); margin-top:0">The AI agent drafts and files the enrollment with Eli
+      Lilly's Taltz Together program in one click.</p>
+    <button class="btn-dark" id="copaySearchBtn" onclick="searchCopayPrograms()" disabled>Enroll in Taltz Together</button>
     <div class="result-box" id="copay-result"></div>
-
-    <div id="copay-options-section" style="display:none">
-      <h3 class="sub-heading">Select a program to enroll in</h3>
-      <div id="copay-options-list"></div>
-      <button class="btn-dark" onclick="selectAndEnrollCopayProgram()">Enroll in selected program</button>
-      <div class="result-box" id="copay-consent-result"></div>
-    </div>
+    <div class="result-box" id="copay-consent-result"></div>
   </div>
 
   <div class="card" id="copay-payload-block">
@@ -1065,8 +1055,6 @@ async function ensureCopayPatient() {
 
 function resetCopayDownstreamSteps() {
   render('copay-consent-result', '', false);
-  document.getElementById('copay-options-section').style.display = 'none';
-  document.getElementById('copay-options-list').innerHTML = '';
   document.getElementById('copayPreviewBtn').disabled = true;
   document.getElementById('copayBillBtn').disabled = true;
   document.getElementById('copay-approve-section').style.display = 'none';
@@ -1079,21 +1067,15 @@ function resetCopayDownstreamSteps() {
 async function searchCopayPrograms() {
   const name = document.getElementById('copayFirstName').value + ' ' + document.getElementById('copayLastName').value;
   const drug = document.getElementById('copayDrugSelect').value;
-  const hasFederalCoverage = false;
 
   try {
     resetCopayDownstreamSteps();
-    render('copay-result', 'Matching ' + name + ' to copay assistance programs for ' + drug + '...', false);
+    render('copay-result', 'Drafting ' + name + '\'s Taltz Together enrollment...', false);
     const patientId = await ensureCopayPatient();
-
-    state.copayPrograms = await api('/api/copay-assistance-programs').catch(() => []);
-    if (hasFederalCoverage) {
-      state.copayPrograms = state.copayPrograms.filter(p => p.federalProgramSafe);
-    }
 
     const applicationId = await new Promise((resolve, reject) => {
       const source = new EventSource('/api/copay-assistance-applications/stream?patientId=' + patientId
-          + '&hasFederalCoverage=' + hasFederalCoverage);
+          + '&hasFederalCoverage=false');
       let full = '';
       source.onmessage = (event) => {
         try { full += JSON.parse(event.data); } catch (e) { full += event.data; }
@@ -1109,53 +1091,9 @@ async function searchCopayPrograms() {
       });
     });
     state.copayApplicationId = applicationId;
-    renderCopayProgramOptions();
-  } catch (e) {
-    render('copay-result', e.message, true);
-  }
-}
 
-function renderCopayProgramOptions() {
-  const list = document.getElementById('copay-options-list');
-  list.innerHTML = '';
-  state.copayPrograms.forEach((program, index) => {
-    const label = document.createElement('label');
-    label.className = 'program-option';
-
-    const input = document.createElement('input');
-    input.type = 'radio';
-    input.name = 'copayProgramChoice';
-    input.value = program.name;
-    if (index === 0) input.checked = true;
-
-    const text = document.createElement('span');
-    text.className = 'program-option-text';
-    const nameEl = document.createElement('div');
-    nameEl.className = 'program-option-name';
-    nameEl.textContent = program.name;
-    const descEl = document.createElement('div');
-    descEl.className = 'program-option-desc';
-    descEl.textContent = program.description || '';
-    text.appendChild(nameEl);
-    text.appendChild(descEl);
-
-    label.appendChild(input);
-    label.appendChild(text);
-    list.appendChild(label);
-  });
-  document.getElementById('copay-options-section').style.display = 'block';
-}
-
-async function selectAndEnrollCopayProgram() {
-  const name = document.getElementById('copayFirstName').value + ' ' + document.getElementById('copayLastName').value;
-  const drug = document.getElementById('copayDrugSelect').value;
-  try {
-    if (!state.copayApplicationId) throw new Error('Search for copay assistance programs first');
-    const chosen = document.querySelector('input[name="copayProgramChoice"]:checked');
-    if (!chosen) throw new Error('Select a program');
-    const programName = chosen.value;
-
-    await api('/api/copay-assistance-applications/' + state.copayApplicationId + '/consent', {
+    const programName = 'Taltz Together';
+    await api('/api/copay-assistance-applications/' + applicationId + '/consent', {
       method: 'POST',
       body: JSON.stringify({
         programName: programName,
@@ -1167,7 +1105,7 @@ async function selectAndEnrollCopayProgram() {
     render('copay-consent-result', '✓ Enrolled -- application submitted to ' + programName + ' for ' + name + '.', false);
     document.getElementById('copayPreviewBtn').disabled = false;
   } catch (e) {
-    render('copay-consent-result', e.message, true);
+    render('copay-result', e.message, true);
   }
 }
 
@@ -1182,7 +1120,7 @@ function previewCopayForm() {
     ['Patient first name', document.getElementById('copayFirstName').value],
     ['Patient last name', document.getElementById('copayLastName').value],
     ['Medication', document.getElementById('copayDrugSelect').value],
-    ['Diagnosis', 'Rheumatoid arthritis (RA)'],
+    ['Diagnosis', 'Plaque psoriasis'],
     ['Prescriber NPI', document.getElementById('copayPrescriberNpi').value],
     ['Copay quoted', '$' + (state.copayAmountCents / 100).toFixed(2)]
   ];

@@ -29,12 +29,7 @@ CREATE TABLE copay_assistance_applications (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Seed reference data: well-known national copay assistance programs. Curated as a fallback /
--- starting point; the AI agent supplements this with live Tavily search, same pattern as
--- insurance_programs.
+-- Seed reference data: Eli Lilly's Taltz Together manufacturer card only -- this demo is
+-- scoped to a single hub relationship, not the general multi-program list.
 INSERT INTO copay_assistance_programs (name, program_type, description, eligibility_summary, official_url, federal_program_safe) VALUES
-('PAN Foundation', 'FOUNDATION', 'Nonprofit copay assistance grants for underinsured patients across many diagnoses.', 'Income-based; open to commercially insured, Medicare, and Medicaid patients.', 'https://www.panfoundation.org', TRUE),
-('HealthWell Foundation', 'FOUNDATION', 'Nonprofit copay, premium, and travel assistance for underinsured patients.', 'Income-based; open to commercially insured, Medicare, and Medicaid patients.', 'https://www.healthwellfoundation.org', TRUE),
-('Patient Advocate Foundation Co-Pay Relief', 'FOUNDATION', 'Direct copay assistance for patients with specific diagnoses, including chronic and life-threatening conditions.', 'Income-based; open to commercially insured, Medicare, and Medicaid patients.', 'https://www.copays.org', TRUE),
-('NeedyMeds Drug Discount Card', 'FOUNDATION', 'Free discount card usable at most pharmacies to lower cash price on many medications.', 'No income or insurance-status restriction; not usable in combination with insurance billing.', 'https://www.needymeds.org', TRUE),
-('Manufacturer Copay Card', 'MANUFACTURER', 'Drug-specific card from the medication''s manufacturer that reduces or eliminates copay for that drug.', 'Commercially insured only. Federal law bars use by Medicare/Medicaid patients (anti-kickback statute).', 'https://www.needymeds.org/copay-cards', FALSE);
+('Taltz Together', 'MANUFACTURER', 'Eli Lilly''s manufacturer savings card for Taltz (ixekizumab), administered via CoverMyMeds.', 'Commercially insured only. Federal law bars use by Medicare/Medicaid patients (anti-kickback statute).', 'https://taltz.lilly.com/savings-support', FALSE);
