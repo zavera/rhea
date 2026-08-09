@@ -594,6 +594,25 @@ footer {
       <div id="copay-issued-card"></div>
     </div>
   </div>
+
+  <div class="card" id="copay-claim-block">
+    <span class="badge">Step 3</span>
+    <h2>Secondary claim</h2>
+    <p style="color:var(--muted); margin-top:0">Shows the primary claim the insurer already adjudicated,
+      next to the secondary claim generated from the card issued in step 2. Pharmacist OKs it before
+      it's submitted.</p>
+    <button class="btn-dark" id="copayClaimBtn" onclick="generateSecondaryClaim()" disabled>Generate secondary claim</button>
+    <div id="copay-claim-preview"></div>
+
+    <div id="copay-claim-approve-section" style="display:none">
+      <div class="checkbox-field">
+        <input type="checkbox" id="copayClaimPharmacistOk">
+        <label for="copayClaimPharmacistOk">Pharmacist OK -- claim amounts are correct, submit it.</label>
+      </div>
+      <button class="btn-dark" onclick="okSecondaryClaim()">OK -- submit secondary claim</button>
+      <div class="result-box" id="copay-claim-result"></div>
+    </div>
+  </div>
 </div>
 </main>
 
@@ -1072,9 +1091,15 @@ function resetCopayDownstreamSteps() {
   document.getElementById('copay-form-preview').innerHTML = '';
   document.getElementById('copay-issued-card').innerHTML = '';
   render('copay-send-result', '', false);
+  document.getElementById('copayClaimBtn').disabled = true;
+  document.getElementById('copay-claim-preview').innerHTML = '';
+  document.getElementById('copay-claim-approve-section').style.display = 'none';
+  document.getElementById('copayClaimPharmacistOk').checked = false;
+  render('copay-claim-result', '', false);
   state.copayApplicationId = null;
   state.copayEnrolledProgram = null;
   state.copayCard = null;
+  state.copayPrimaryClaim = null;
 }
 
 // Canvas signature capture -- placeholder for a real Topaz signature-pad SDK integration,
@@ -1310,19 +1335,94 @@ async function approveAndSendCopayPayload() {
         agree: true
       })
     });
-    await api('/api/copay-assistance-applications/' + state.copayApplicationId
-        + '/decision?status=APPROVED', { method: 'POST' });
     state.copayCard = generateStubCardNumbers();
-    const originalCopay = (state.copayAmountCents / 100).toFixed(2);
     const card = state.copayCard;
-    render('copay-send-result', '✓ Card issued -- billed via the pharmacy\'s existing claims switch '
-        + '(BIN ' + card.bin + ' / PCN ' + card.pcn + ' / GRP ' + card.grp + ', member ' + card.memberId + ').\n'
-        + 'Copay: $' + originalCopay + ' -> $0.00. ' + drug + ' dispensed to ' + name + '.', false);
+    render('copay-send-result', '✓ Card issued for ' + name + ' -- '
+        + 'BIN ' + card.bin + ' / PCN ' + card.pcn + ' / GRP ' + card.grp + ', member ' + card.memberId + '.', false);
     const cardContainer = document.getElementById('copay-issued-card');
     cardContainer.innerHTML = '';
     cardContainer.appendChild(buildIssuedCardVisual(state.copayCard));
+    document.getElementById('copayClaimBtn').disabled = false;
   } catch (e) {
     render('copay-send-result', e.message, true);
+  }
+}
+
+function generatePrimaryClaimStub() {
+  return {
+    claimId: 'CLM' + Math.floor(100000 + Math.random() * 899999),
+    insurer: 'Sample Health Plan (commercial)',
+    timestamp: new Date().toLocaleString(),
+    patientResponsibilityCents: state.copayAmountCents
+  };
+}
+
+function buildClaimRow(label, value) {
+  const row = document.createElement('div');
+  row.className = 'browser-form-row';
+  const labelEl = document.createElement('div');
+  labelEl.className = 'browser-form-label';
+  labelEl.textContent = label;
+  const valueEl = document.createElement('div');
+  valueEl.className = 'browser-form-value';
+  valueEl.textContent = value;
+  row.appendChild(labelEl);
+  row.appendChild(valueEl);
+  return row;
+}
+
+function generateSecondaryClaim() {
+  if (!state.copayCard) {
+    render('copay-claim-result', 'Issue the card in step 2 first.', true);
+    return;
+  }
+  state.copayPrimaryClaim = generatePrimaryClaimStub();
+  const primary = state.copayPrimaryClaim;
+  const card = state.copayCard;
+  const owed = (primary.patientResponsibilityCents / 100).toFixed(2);
+
+  const preview = document.getElementById('copay-claim-preview');
+  preview.innerHTML = '';
+
+  const primaryBox = document.createElement('div');
+  const primaryHeading = document.createElement('h3');
+  primaryHeading.className = 'sub-heading';
+  primaryHeading.textContent = 'Primary claim -- already billed by the insurer';
+  primaryBox.appendChild(primaryHeading);
+  primaryBox.appendChild(buildClaimRow('Claim ID', primary.claimId));
+  primaryBox.appendChild(buildClaimRow('Insurer', primary.insurer));
+  primaryBox.appendChild(buildClaimRow('Adjudicated', primary.timestamp));
+  primaryBox.appendChild(buildClaimRow('Patient responsibility', '$' + owed));
+  preview.appendChild(primaryBox);
+
+  const secondaryBox = document.createElement('div');
+  secondaryBox.style.marginTop = '18px';
+  const secondaryHeading = document.createElement('h3');
+  secondaryHeading.className = 'sub-heading';
+  secondaryHeading.textContent = 'Secondary claim -- generated from the Taltz Together card';
+  secondaryBox.appendChild(secondaryHeading);
+  secondaryBox.appendChild(buildClaimRow('BIN / PCN / GRP', card.bin + ' / ' + card.pcn + ' / ' + card.grp));
+  secondaryBox.appendChild(buildClaimRow('Member ID', card.memberId));
+  secondaryBox.appendChild(buildClaimRow('Amount billed', '$' + owed));
+  secondaryBox.appendChild(buildClaimRow('Patient responsibility after', '$0.00'));
+  preview.appendChild(secondaryBox);
+
+  document.getElementById('copay-claim-approve-section').style.display = 'block';
+}
+
+async function okSecondaryClaim() {
+  const name = document.getElementById('copayFirstName').value + ' ' + document.getElementById('copayLastName').value;
+  const drug = document.getElementById('copayDrugSelect').value;
+  try {
+    if (!state.copayPrimaryClaim) throw new Error('Generate the secondary claim first.');
+    if (!document.getElementById('copayClaimPharmacistOk').checked) {
+      throw new Error('Check "Pharmacist OK" before submitting.');
+    }
+    await api('/api/copay-assistance-applications/' + state.copayApplicationId
+        + '/decision?status=APPROVED', { method: 'POST' });
+    render('copay-claim-result', '✓ Secondary claim submitted -- ' + drug + ' dispensed to ' + name + '.', false);
+  } catch (e) {
+    render('copay-claim-result', e.message, true);
   }
 }
 
