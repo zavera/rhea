@@ -565,31 +565,11 @@ footer {
   <div class="card" id="copay-block">
     <span class="badge">Step 2</span>
     <span class="ai-highlight">AI-Powered Matching</span>
-    <h2>Draft Taltz Together enrollment</h2>
-    <p style="color:var(--muted); margin-top:0">The AI agent drafts the enrollment. Nothing is filed until
-      the pharmacist reviews and approves it below.</p>
-    <button class="btn-dark" id="copaySearchBtn" onclick="draftCopayEnrollment()" disabled>Draft enrollment</button>
-    <div class="result-box" id="copay-result"></div>
-
-    <div id="copay-draft-approve-section" style="display:none">
-      <div class="checkbox-field">
-        <input type="checkbox" id="copayDraftPharmacistApprove">
-        <label for="copayDraftPharmacistApprove">Pharmacist review complete -- draft is accurate, file it.</label>
-      </div>
-      <button class="btn-dark" onclick="approveCopayEnrollment()">Approve &amp; file enrollment</button>
-      <div class="result-box" id="copay-consent-result"></div>
-    </div>
-  </div>
-
-  <div class="card" id="copay-payload-block">
-    <span class="badge">Step 3</span>
-    <span class="ai-highlight">Demo Stub</span>
-    <h2>Preview &amp; send enrollment form</h2>
-    <p style="color:var(--muted); margin-top:0">The AI agent doesn't submit the manufacturer/foundation's
-      real online form itself -- form portals block automated submission, and some fields are legal
-      attestations a person has to make. It fills out the form fields; the pharmacist reviews the
-      preview below and sends it.</p>
-    <button class="btn-dark" id="copayPreviewBtn" onclick="previewCopayForm()" disabled>Preview enrollment form</button>
+    <h2>Draft Taltz Together enrollment form</h2>
+    <p style="color:var(--muted); margin-top:0">The AI agent fills out the real Taltz Together enrollment
+      form using the patient info and insurance card from step 1. Nothing is sent until the pharmacist
+      reviews and approves it below.</p>
+    <button class="btn-dark" id="copaySearchBtn" onclick="draftCopayEnrollment()" disabled>Draft enrollment form</button>
     <div id="copay-form-preview"></div>
 
     <div id="copay-approve-section" style="display:none">
@@ -603,7 +583,7 @@ footer {
   </div>
 
   <div class="card" id="copay-bill-block">
-    <span class="badge">Step 4</span>
+    <span class="badge">Step 3</span>
     <h2>Bill copay authority &amp; dispense</h2>
     <p style="color:var(--muted); margin-top:0">Once enrolled, the reduced-cost bill goes to the copay
       authority and the medication is dispensed the same visit -- no retail-price deferral, unlike
@@ -1089,12 +1069,9 @@ async function ensureCopayPatient() {
 }
 
 function resetCopayDownstreamSteps() {
-  render('copay-consent-result', '', false);
-  document.getElementById('copay-draft-approve-section').style.display = 'none';
-  document.getElementById('copayDraftPharmacistApprove').checked = false;
-  document.getElementById('copayPreviewBtn').disabled = true;
   document.getElementById('copayBillBtn').disabled = true;
   document.getElementById('copay-approve-section').style.display = 'none';
+  document.getElementById('copayPharmacistApprove').checked = false;
   document.getElementById('copay-form-preview').innerHTML = '';
   render('copay-send-result', '', false);
   state.copayApplicationId = null;
@@ -1102,21 +1079,16 @@ function resetCopayDownstreamSteps() {
 }
 
 async function draftCopayEnrollment() {
-  const name = document.getElementById('copayFirstName').value + ' ' + document.getElementById('copayLastName').value;
-
   try {
     resetCopayDownstreamSteps();
-    render('copay-result', 'Drafting ' + name + '\'s Taltz Together enrollment...', false);
     const patientId = await ensureCopayPatient();
 
+    // AI draft text is intentionally not shown -- the form preview below is the real output,
+    // same pattern as Unemployment Assist's pairing step.
     const applicationId = await new Promise((resolve, reject) => {
       const source = new EventSource('/api/copay-assistance-applications/stream?patientId=' + patientId
           + '&hasFederalCoverage=false');
-      let full = '';
-      source.onmessage = (event) => {
-        try { full += JSON.parse(event.data); } catch (e) { full += event.data; }
-        render('copay-result', full, false);
-      };
+      source.onmessage = () => {};
       source.addEventListener('done', (event) => {
         source.close();
         event.data ? resolve(Number(event.data)) : reject(new Error('No application drafted'));
@@ -1127,43 +1099,19 @@ async function draftCopayEnrollment() {
       });
     });
     state.copayApplicationId = applicationId;
-    document.getElementById('copay-draft-approve-section').style.display = 'block';
+    state.copayEnrolledProgram = 'Taltz Together';
+    renderCopayFormPreview();
   } catch (e) {
-    render('copay-result', e.message, true);
-  }
-}
-
-async function approveCopayEnrollment() {
-  const name = document.getElementById('copayFirstName').value + ' ' + document.getElementById('copayLastName').value;
-  const drug = document.getElementById('copayDrugSelect').value;
-  try {
-    if (!state.copayApplicationId) throw new Error('Draft the enrollment first');
-    if (!document.getElementById('copayDraftPharmacistApprove').checked) {
-      throw new Error('Check "Pharmacist review complete" before filing.');
-    }
-    const programName = 'Taltz Together';
-    await api('/api/copay-assistance-applications/' + state.copayApplicationId + '/consent', {
-      method: 'POST',
-      body: JSON.stringify({
-        programName: programName,
-        consentText: 'Pharmacist approved at the counter; enrollment filed on the patient\'s behalf for ' + drug + '.',
-        agree: true
-      })
-    });
-    state.copayEnrolledProgram = programName;
-    render('copay-consent-result', '✓ Approved by pharmacist -- application submitted to ' + programName + ' for ' + name + '.', false);
-    document.getElementById('copayPreviewBtn').disabled = false;
-  } catch (e) {
-    render('copay-consent-result', e.message, true);
-  }
-}
-
-function previewCopayForm() {
-  if (!state.copayEnrolledProgram) {
     document.getElementById('copay-form-preview').innerHTML = '';
-    render('copay-send-result', 'Enroll in a program first', true);
-    return;
+    render('copay-send-result', e.message, true);
   }
+}
+
+function renderCopayFormPreview() {
+  const cardFile = document.getElementById('copayInsuranceCardUpload').files[0];
+  const coverageNote = state.copayHasCommercialRxCoverage === undefined
+      ? 'Not checked'
+      : (state.copayHasCommercialRxCoverage ? 'Commercial, Rx benefit confirmed' : 'Discount card -- needs review');
 
   const fields = [
     ['Patient first name', document.getElementById('copayFirstName').value],
@@ -1171,9 +1119,9 @@ function previewCopayForm() {
     ['Medication', document.getElementById('copayDrugSelect').value],
     ['Diagnosis', 'Plaque psoriasis'],
     ['Prescriber NPI', document.getElementById('copayPrescriberNpi').value],
-    ['Copay quoted', '$' + (state.copayAmountCents / 100).toFixed(2)]
+    ['Copay quoted', '$' + (state.copayAmountCents / 100).toFixed(2)],
+    ['Insurance coverage type', coverageNote]
   ];
-  const urlSlug = state.copayEnrolledProgram.toLowerCase().replace(/[^a-z0-9]+/g, '');
 
   const mock = document.createElement('div');
   mock.className = 'browser-mock';
@@ -1187,7 +1135,7 @@ function previewCopayForm() {
   });
   const url = document.createElement('div');
   url.className = 'browser-mock-url';
-  url.textContent = urlSlug + '.org/enroll (demo -- not a live page)';
+  url.textContent = 'taltztogether.org/enroll (demo -- not a live page)';
   bar.appendChild(url);
   mock.appendChild(bar);
 
@@ -1195,8 +1143,29 @@ function previewCopayForm() {
   body.className = 'browser-mock-body';
   const heading = document.createElement('div');
   heading.className = 'browser-mock-heading';
-  heading.textContent = state.copayEnrolledProgram + ' -- Enrollment Form';
+  heading.textContent = 'Taltz Together -- Enrollment Form';
   body.appendChild(heading);
+
+  const cardRow = document.createElement('div');
+  cardRow.className = 'browser-form-row';
+  const cardLabel = document.createElement('div');
+  cardLabel.className = 'browser-form-label';
+  cardLabel.textContent = 'Insurance card';
+  cardRow.appendChild(cardLabel);
+  if (cardFile) {
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(cardFile);
+    img.alt = 'Uploaded insurance card';
+    img.style.cssText = 'max-width:160px; max-height:100px; border-radius:6px; border:1px solid var(--line);';
+    cardRow.appendChild(img);
+  } else {
+    const placeholder = document.createElement('div');
+    placeholder.textContent = '[ no card photo uploaded -- placeholder ]';
+    placeholder.style.cssText = 'width:160px; height:100px; display:flex; align-items:center; justify-content:center; '
+        + 'text-align:center; font-size:11px; color:var(--muted); border:1.5px dashed var(--line); border-radius:6px;';
+    cardRow.appendChild(placeholder);
+  }
+  body.appendChild(cardRow);
 
   fields.forEach(([label, value]) => {
     const row = document.createElement('div');
@@ -1218,22 +1187,30 @@ function previewCopayForm() {
   preview.appendChild(mock);
 
   document.getElementById('copay-approve-section').style.display = 'block';
-  document.getElementById('copayPharmacistApprove').checked = false;
-  render('copay-send-result', '', false);
 }
 
-function approveAndSendCopayPayload() {
-  if (!state.copayEnrolledProgram) {
-    render('copay-send-result', 'Preview the enrollment form first', true);
-    return;
+async function approveAndSendCopayPayload() {
+  const name = document.getElementById('copayFirstName').value + ' ' + document.getElementById('copayLastName').value;
+  const drug = document.getElementById('copayDrugSelect').value;
+  try {
+    if (!state.copayApplicationId) throw new Error('Draft the enrollment form first');
+    if (!document.getElementById('copayPharmacistApprove').checked) {
+      throw new Error('Check "Pharmacist review complete" before sending.');
+    }
+    await api('/api/copay-assistance-applications/' + state.copayApplicationId + '/consent', {
+      method: 'POST',
+      body: JSON.stringify({
+        programName: state.copayEnrolledProgram,
+        consentText: 'Pharmacist approved at the counter; enrollment filed on the patient\'s behalf for ' + drug + '.',
+        agree: true
+      })
+    });
+    render('copay-send-result', '✓ Approved by pharmacist and sent to '
+        + state.copayEnrolledProgram + '\'s enrollment portal for ' + name + '.', false);
+    document.getElementById('copayBillBtn').disabled = false;
+  } catch (e) {
+    render('copay-send-result', e.message, true);
   }
-  if (!document.getElementById('copayPharmacistApprove').checked) {
-    render('copay-send-result', 'Check "Pharmacist review complete" before sending.', true);
-    return;
-  }
-  render('copay-send-result', '✓ Approved by pharmacist and sent to '
-      + state.copayEnrolledProgram + '\'s enrollment portal.', false);
-  document.getElementById('copayBillBtn').disabled = false;
 }
 
 async function sendBillAndDispense() {
