@@ -594,16 +594,6 @@ footer {
       <div id="copay-issued-card"></div>
     </div>
   </div>
-
-  <div class="card" id="copay-bill-block">
-    <span class="badge">Step 3</span>
-    <h2>Bill copay authority &amp; dispense</h2>
-    <p style="color:var(--muted); margin-top:0">Once enrolled, the reduced-cost bill goes to the copay
-      authority and the medication is dispensed the same visit -- no retail-price deferral, unlike
-      Unemployment Assist's appeal-after-dispense flow.</p>
-    <button class="btn-dark" id="copayBillBtn" onclick="sendBillAndDispense()" disabled>Send bill to copay authority &amp; dispense</button>
-    <div class="result-box" id="copay-bill-result"></div>
-  </div>
 </div>
 </main>
 
@@ -1077,7 +1067,6 @@ async function ensureCopayPatient() {
 }
 
 function resetCopayDownstreamSteps() {
-  document.getElementById('copayBillBtn').disabled = true;
   document.getElementById('copay-approve-section').style.display = 'none';
   document.getElementById('copayPharmacistApprove').checked = false;
   document.getElementById('copay-form-preview').innerHTML = '';
@@ -1321,33 +1310,19 @@ async function approveAndSendCopayPayload() {
         agree: true
       })
     });
+    await api('/api/copay-assistance-applications/' + state.copayApplicationId
+        + '/decision?status=APPROVED', { method: 'POST' });
     state.copayCard = generateStubCardNumbers();
-    render('copay-send-result', '✓ Approved by pharmacist and sent to '
-        + state.copayEnrolledProgram + '\'s enrollment portal for ' + name + '. Card issued below.', false);
+    const originalCopay = (state.copayAmountCents / 100).toFixed(2);
+    const card = state.copayCard;
+    render('copay-send-result', '✓ Card issued -- billed via the pharmacy\'s existing claims switch '
+        + '(BIN ' + card.bin + ' / PCN ' + card.pcn + ' / GRP ' + card.grp + ', member ' + card.memberId + ').\n'
+        + 'Copay: $' + originalCopay + ' -> $0.00. ' + drug + ' dispensed to ' + name + '.', false);
     const cardContainer = document.getElementById('copay-issued-card');
     cardContainer.innerHTML = '';
     cardContainer.appendChild(buildIssuedCardVisual(state.copayCard));
-    document.getElementById('copayBillBtn').disabled = false;
   } catch (e) {
     render('copay-send-result', e.message, true);
-  }
-}
-
-async function sendBillAndDispense() {
-  const name = document.getElementById('copayFirstName').value + ' ' + document.getElementById('copayLastName').value;
-  const drug = document.getElementById('copayDrugSelect').value;
-  try {
-    if (!state.copayApplicationId) throw new Error('Initiate copay assistance enrollment first');
-    const application = await api('/api/copay-assistance-applications/' + state.copayApplicationId
-        + '/decision?status=APPROVED', { method: 'POST' });
-    const originalCopay = (state.copayAmountCents / 100).toFixed(2);
-    const card = state.copayCard;
-    render('copay-bill-result', 'Secondary claim submitted using BIN ' + card.bin + ' / PCN ' + card.pcn
-        + ' / GRP ' + card.grp + ' (member ' + card.memberId + ') -- approved same-visit.\n'
-        + 'Original copay: $' + originalCopay + ' -> reduced to $0.00 for the patient.\n'
-        + '✓ ' + drug + ' dispensed to ' + name + '.', false);
-  } catch (e) {
-    render('copay-bill-result', e.message, true);
   }
 }
 
